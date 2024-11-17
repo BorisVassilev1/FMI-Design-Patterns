@@ -96,12 +96,29 @@ TEST_CASE("stringify figures") {
 
 TEST_CASE("inheritance") {
 	auto v = TypeRegistry::getChildren().at("Figure");
+	std::cout << "children of Figure: " << std::endl;
+	for (const auto& s : v)
+		std::cout << s << std::endl;
+	std::cout << std::endl;
 	CHECK_NE(std::find(v.begin(), v.end(), "Triangle"), v.end());
 	CHECK_NE(std::find(v.begin(), v.end(), "Rectangle"), v.end());
 	CHECK_NE(std::find(v.begin(), v.end(), "Circle"), v.end());
 
 	v = TypeRegistry::getChildren().at("Cloneable");
 	CHECK_NE(std::find(v.begin(), v.end(), "Figure"), v.end());
+	CHECK_NE(std::find(v.begin(), v.end(), "Triangle"), v.end());
+	CHECK_NE(std::find(v.begin(), v.end(), "Rectangle"), v.end());
+	CHECK_NE(std::find(v.begin(), v.end(), "Circle"), v.end());
+
+	v = TypeRegistry::getChildren().at("FigureFactory");
+	CHECK_NE(std::find(v.begin(), v.end(), "RandomFigureFactory"), v.end());
+	CHECK_NE(std::find(v.begin(), v.end(), "IstreamFigureFactory"), v.end());
+	CHECK_NE(std::find(v.begin(), v.end(), "FileFigureFactory"), v.end());
+	CHECK_NE(std::find(v.begin(), v.end(), "STDINFigureFactory"), v.end());
+
+	v = TypeRegistry::getParents().at("STDINFigureFactory");
+	CHECK_NE(std::find(v.begin(), v.end(), "FigureFactory"), v.end());
+	CHECK_NE(std::find(v.begin(), v.end(), "IstreamFigureFactory"), v.end());
 }
 
 TEST_CASE("Random Factory") {
@@ -109,7 +126,6 @@ TEST_CASE("Random Factory") {
 	RandomFigureFactory ff;
 	for (int i = 0; i < 100; ++i) {
 		Figure* f = ff.create();
-		// std::cout << (std::string)*f << std::endl;
 		CHECK(f->perimeter() >= 0);
 		CHECK(f->perimeter() <= 63);
 		delete f;
@@ -140,7 +156,7 @@ TEST_CASE("File Figure Factory") {
 	file.close();
 
 	FileFigureFactory ff("../tmp/test_file.txt");
-	Figure* f;
+	Figure*			  f;
 
 	f = ff.create();
 	CHECK_EQ((std::string)*f, "Triangle 3 4 5");
@@ -182,16 +198,18 @@ TEST_CASE("Abstract Factory") {
 	std::ostringstream os;
 	os.setstate(std::ios_base::badbit);
 
+	AbstractFigureFactory aff(is, os);
+
 	FigureFactory* f;
-	f = AbstractFigureFactory().create(is, os);
+	f = aff.create();
 	CHECK_NE(dynamic_cast<RandomFigureFactory*>(f), nullptr);
 	delete f;
 
-	f = AbstractFigureFactory().create(is, os);
+	f = aff.create();
 	CHECK_NE(dynamic_cast<STDINFigureFactory*>(f), nullptr);
 	delete f;
 
-	f = AbstractFigureFactory().create(is, os);
+	f = aff.create();
 	CHECK_NE(dynamic_cast<FileFigureFactory*>(f), nullptr);
 	delete f;
 }

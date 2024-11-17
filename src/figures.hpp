@@ -10,6 +10,7 @@ INHERIT(Stringifiable, Figure);
 class Figure : public Cloneable, public Stringifiable {
    public:
 	virtual float perimeter() const = 0;
+	virtual Figure *clone() const override = 0;
 	virtual ~Figure() {};
 };
 

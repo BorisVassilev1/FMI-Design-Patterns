@@ -2,11 +2,14 @@
 
 #include <any>
 #include <functional>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <map>
 #include <utility>
 #include <unordered_set>
+#include <algorithm>
 
 #include "utils.hpp"
 
@@ -57,17 +60,52 @@ class TypeRegistry {
 	}
 
 	static void registerSuccessor(const std::string &parent, const std::string &child) {
-		getChildren()[parent].push_back(child);
-		getParents()[child].push_back(parent);
+		auto &childrenOfParent = getChildren()[parent];
+		auto &parentsOfChild   = getParents()[child];
+		auto &parentsOfParent  = getParents()[parent];
+		auto &childrenOfChild  = getChildren()[child];
 
-		for (const auto &p : getParents()[parent]) {
-			getParents()[child].push_back(p);
-		}
-		for (const auto &c : getChildren()[child]) {
-			getChildren()[parent].push_back(c);
-		}
+		childrenOfParent.push_back(child);
+		parentsOfChild.push_back(parent);
+
+		parentsOfChild.insert(parentsOfChild.end(), parentsOfParent.begin(), parentsOfParent.end());
+		childrenOfParent.insert(childrenOfParent.end(), childrenOfChild.begin(), childrenOfChild.end());
+
+		std::function<void(const std::string &)> dfsDown = [&](const std::string &child) {
+			for (const auto &c : getChildren()[child]) {
+				auto &parentsOfChild = getParents()[c];
+				if (std::find(parentsOfChild.begin(), parentsOfChild.end(), parent) == parentsOfChild.end()) {
+					parentsOfChild.push_back(parent);
+				}
+				dfsDown(c);
+			}
+		};
+
+		std::function<void(const std::string &)> dfsUp = [&](const std::string &pparent) {
+			for (const auto &p : getParents()[pparent]) {
+				auto &childrenOfParent = getChildren()[p];
+				if (std::find(childrenOfParent.begin(), childrenOfParent.end(), child) == childrenOfParent.end()) {
+					childrenOfParent.push_back(child);
+				}
+				dfsUp(p);
+			}
+		};
+		dfsDown(child);
+		dfsUp(parent);
+		
 	}
-	
+
+	static std::unordered_set<std::string> getDescendants(const std::string &type) {
+		std::unordered_set<std::string>			 result;
+		std::function<void(const std::string &)> dfs = [&](const std::string &type) {
+			result.insert(type);
+			for (const auto &child : getChildren().at(type)) {
+				dfs(child);
+			}
+		};
+		dfs(type);
+		return result;
+	}
 };
 
 #define INHERIT(parent, child) JOB(inherit_##parent##child, TypeRegistry::registerSuccessor(#parent, #child););
@@ -76,8 +114,8 @@ template <class Type, class... Args>
 static std::function<Type *(Args...)> constructor_wrapper = [](Args... args) { return new Type(args...); };
 
 #define REGISTER_CONSTRUCTOR(Type) \
-	JOB(register_constructor_##Type,    \
-		{ TypeRegistry::registerConstructor(#Type, constructor_wrapper<Type>); });
+	JOB(register_constructor_##Type, { TypeRegistry::registerConstructor(#Type, constructor_wrapper<Type>); });
 #define REGISTER_CONSTRUCTOR_WITH_ARGS(Type, ...) \
-	JOB(register_constructor_##Type,    \
+	JOB(register_constructor_##Type,              \
 		{ TypeRegistry::registerConstructor(#Type, constructor_wrapper<Type, __VA_ARGS__>); });
+

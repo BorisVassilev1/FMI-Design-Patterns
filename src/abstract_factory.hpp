@@ -9,17 +9,23 @@
 #include "figure_factory.hpp"
 #include "type_registry.hpp"
 
-class AbstractFigureFactory {
+class AbstractFigureFactory : public Factory<FigureFactory> {
+	std::istream &in;
+	std::ostream &out;
+
    public:
-	auto listFactoryTypes() const {
-		auto v = TypeRegistry::getChildren().at("FigureFactory");
-		v.erase(std::remove_if(v.begin(), v.end(), [](const std::string &s) {
-			return TypeRegistry::getConstructors().find(s) == TypeRegistry::getConstructors().end();
-		}), v.end());
-		return v;
+	AbstractFigureFactory(std::istream &in, std::ostream &out) : in(in), out(out) {}
+
+	static auto listFactoryTypes() {
+		auto &v = TypeRegistry::getChildren().at("FigureFactory");
+		auto  k = v | std::views::filter([](const std::string &s) {
+					  return TypeRegistry::getConstructors().find(s) != TypeRegistry::getConstructors().end();
+				  }) |
+				 std::views::transform([](const std::string &s) { return s.substr(0, s.size() - 13); });
+		return k;
 	}
 
-	FigureFactory *create(std::istream &in, std::ostream &out) {
+	FigureFactory *create() override {
 		std::string name;
 		in >> name;
 		if (!in) throw std::runtime_error("not enough arguments");
@@ -41,7 +47,7 @@ class AbstractFigureFactory {
 		}
 
 		std::vector<std::any> args;
-		if (argcnt == 2) {
+		if (argcnt >= 2) {
 			args.push_back(std::any(&in));
 			args.push_back(std::any(&out));
 		}
