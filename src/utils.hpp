@@ -20,7 +20,7 @@ struct string_literal {
 };
 
 template <class T>
-auto f_name() {
+auto type_name() {
 	typedef typename std::remove_reference<T>::type TR;
 
 	std::unique_ptr<char, void (*)(void *)> own(abi::__cxa_demangle(typeid(TR).name(), nullptr, nullptr, nullptr),
@@ -34,7 +34,7 @@ auto f_name() {
 	return r;
 }
 
-inline auto f_demangle(const char *n) {
+inline auto typename_demangle(const char *n) {
 	std::unique_ptr<char, void (*)(void *)> own(abi::__cxa_demangle(n, nullptr, nullptr, nullptr), std::free);
 	std::string								r = own != nullptr ? own.get() : n;
 	return r;
