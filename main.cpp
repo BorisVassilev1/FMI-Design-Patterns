@@ -6,58 +6,51 @@
 int main() {
 	std::string inputMethod;
 
-	AbstractFigureFactory abstractff(std::cin, std::cout);
+	AbstractFigureFactory abstractff(std::cin);
 
 	auto types = abstractff.listFactoryTypes();
-	std::cout << "Enter input method: [ ";
-	for (const auto &type : types) {
-		std::cout << type << " ";
+	std::cout << "Enter input method: [ " << std::endl;
+	for (const auto &[type, argcnt, desc] : types) {
+		std::cout << "    " << desc << '\n';
 	}
 	std::cout << "]" << std::endl;
 
 	FigureFactory *factory = nullptr;
 	do {
 		try {
+			std::cout << "==> " << std::flush;
 			factory = abstractff.create();
-		} catch (const std::exception &e) { std::cerr << e.what() << std::endl; }
+		} catch (const std::exception &e) { std::cerr << "error: " << e.what() << std::endl; }
 	} while (factory == nullptr);
-	std::size_t figureCount;
-
-	std::cout << "Enter number of figures: " << std::flush;
-	std::cin >> figureCount;
-	std::cin.ignore();
+	std::size_t figureCount = -1;
 
 	std::vector<Figure *> figures;
 
-	for (std::size_t i = 0; i < figureCount; ++i) {
+	while (true) {
 		try {
-			figures.push_back(factory->create());
+			Figure *f = factory->create();
+			if (f == nullptr) break;
+			figures.push_back(f);
 		} catch (const std::exception &e) { std::cerr << e.what() << std::endl; }
 	}
 
-	std::string command;
+	std::string				 command;
+	commands::CommandFactory cf(std::cin);
+	bool					 result = true;
+
 	do {
 		try {
-			std::cout << "--> " << std::flush;
-			std::getline(std::cin, command);
-			if(command.size() == 0) {
-				std::cout << '\r';
-				continue;
-			}
-			if (command == "list") {
-				commands::list(figures, std::cin, std::cout);
-			} else if (command == "store") {
-				commands::store(figures, std::cin, std::cout);
-			} else if (command == "remove") {
-				commands::remove(figures, std::cin, std::cout);
-			} else if (command == "duplicate") {
-				commands::duplicate(figures, std::cin, std::cout);
-			} else if (command == "exit") {
-				break;
-			} else {
-				throw std::runtime_error("unknown command: \"" + command + "\"");
-			}
-		} catch (const std::exception &e) { std::cerr << "error: " << e.what() << std::endl; }
+			std::cout << (result ? "--> " : "-<< ") << std::flush;
+			commands::Command *cmd = cf.create();
+			if (cmd == nullptr) continue;
+
+			bool res = (*cmd)(figures, std::cin, std::cout);
+			if (!res) break;
+			result = true;
+		} catch (const std::exception &e) {
+			std::cerr << "error: " << e.what() << std::endl;
+			result = false;
+		}
 	} while (true);
 
 	return 0;

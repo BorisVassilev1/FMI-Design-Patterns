@@ -13,13 +13,18 @@ using FigureFactory = Factory<Figure>;
 
 INHERIT(FigureFactory, RandomFigureFactory);
 class RandomFigureFactory : public FigureFactory {
+	std::size_t figure_count;
+
    public:
+	RandomFigureFactory(std::size_t figure_count = -1) : figure_count(figure_count) {}
+
 	Figure *create() override {
+		if (figure_count == 0) return nullptr;
 		const auto &children = TypeRegistry::getChildren().at("Figure");
 		int			index	 = rand() % children.size();
 
 		const std::string &figureName	 = children[index];
-		const auto [argcnt, constructor] = TypeRegistry::getConstructors().at(figureName);
+		const auto [argcnt, _, constructor] = TypeRegistry::getConstructors().at(figureName);
 
 		std::vector<std::any> args;
 		for (std::size_t i = 0; i < argcnt; ++i) {
@@ -27,51 +32,14 @@ class RandomFigureFactory : public FigureFactory {
 		}
 
 		auto res = constructor(args);
+		if(figure_count != -1) --figure_count;
 		return static_cast<Figure *>(res);
 	}
 };
 
 INHERIT(FigureFactory, IstreamFigureFactory);
-class IstreamFigureFactory : public FigureFactory {
-	std::istream &in;
-
-   public:
-	IstreamFigureFactory(std::istream &in) : in(in) {}
-
-	Figure *create() override {
-		if (!in || in.eof()) { throw std::runtime_error("not enough arguments"); }
-		std::string figureType;
-		in >> figureType;
-
-		std::size_t						argcnt = 0;
-		TypeRegistry::Constructor		constructor;
-		const std::vector<std::string> *parents;
-
-		try {
-			parents			= &TypeRegistry::getParents().at(figureType);
-			const auto data = TypeRegistry::getConstructors().at(figureType);
-			argcnt			= data.argcnt;
-			constructor		= data.c;
-
-		} catch (const std::out_of_range &e) {
-			throw std::runtime_error(std::format("figure type \"{}\" is not registered correctly", figureType));
-		}
-
-		if (std::find(parents->begin(), parents->end(), "Figure") == parents->end()) {
-			throw std::runtime_error(std::format("figure type \"{}\" is not a Figure", figureType));
-		}
-
-		std::vector<std::any> args;
-		for (std::size_t i = 0; i < argcnt; ++i) {
-			float arg = 0;
-			in >> arg;
-			if (!in) { throw std::runtime_error(std::format("not enough arguments for \"{}\"", figureType)); }
-			args.push_back(arg);
-			if (in.eof()) break;
-		}
-
-		return static_cast<Figure *>(constructor(args));
-	}
+class IstreamFigureFactory : public IstreamFactoryBase<Figure, "Figure", false, float> {
+	using IstreamFactoryBase::IstreamFactoryBase;
 };
 
 inline Figure *figureFromString(const std::string &s) {
@@ -82,8 +50,14 @@ inline Figure *figureFromString(const std::string &s) {
 
 INHERIT(IstreamFigureFactory, STDINFigureFactory);
 class STDINFigureFactory : public IstreamFigureFactory {
+	std::size_t figure_count;
    public:
-	STDINFigureFactory() : IstreamFigureFactory(std::cin) {}
+	STDINFigureFactory(std::size_t figure_count) : IstreamFigureFactory(std::cin), figure_count(figure_count) {}
+	Figure* create() override {
+		if(!figure_count) return nullptr;
+		if(figure_count != -1) --figure_count;
+		return IstreamFigureFactory::create();
+	}
 };
 
 INHERIT(IstreamFigureFactory, FileFigureFactory);
@@ -100,16 +74,13 @@ class FileFigureFactory : public IstreamFigureFactory {
 };
 
 JOB(register_figure_factories, {
-	TypeRegistry::registerConstructor("RandomFigureFactory",
-									  std::function([]() -> FigureFactory * { return new RandomFigureFactory(); }));
-	TypeRegistry::registerConstructor("STDINFigureFactory",
-									  std::function([]() -> FigureFactory * { return new STDINFigureFactory(); }));
-	TypeRegistry::registerConstructor("FileFigureFactory",
-									  std::function([](std::istream *in, std::ostream *out) -> FigureFactory * {
-										  std::string fileName;
-										  *out << "Please enter the file name: " << std::flush;
-										  *in >> fileName;
-										  if (!*in) throw std::runtime_error("could read file name");
+	TypeRegistry::registerConstructor("RandomFigureFactory", std::function([](std::string cnt) -> FigureFactory * {
+										  return new RandomFigureFactory(std::stoi(cnt));
+									  }), "Random N  : generate N random figures");
+	TypeRegistry::registerConstructor("STDINFigureFactory", std::function([](std::string cnt) -> FigureFactory * {
+										  return new STDINFigureFactory(std::stoi(cnt));
+									  }), "STDIN N  : input N figures from stdin");
+	TypeRegistry::registerConstructor("FileFigureFactory", std::function([](std::string &fileName) -> FigureFactory * {
 										  return new FileFigureFactory(fileName);
-									  }));
+									  }), "File fileName : read all figures from the specified file");
 });

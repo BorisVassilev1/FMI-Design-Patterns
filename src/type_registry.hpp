@@ -38,6 +38,7 @@ class TypeRegistry {
 	using Constructor = std::function<void *(std::vector<std::any>)>;
 	struct ConstructorData {
 		std::size_t argcnt;
+		std::string description;
 		Constructor c;
 	};
 
@@ -55,8 +56,9 @@ class TypeRegistry {
 	}
 
 	template <typename Ret, typename... Args>
-	static void registerConstructor(const std::string &typeName, const std::function<Ret(Args...)> &func) {
-		getConstructors().insert({typeName, {sizeof...(Args), argsToVector(func)}});
+	static void registerConstructor(const std::string &typeName, const std::function<Ret(Args...)> &func,
+									const std::string &description = "") {
+		getConstructors().insert({typeName, {sizeof...(Args), description, argsToVector(func)}});
 	}
 
 	static void registerSuccessor(const std::string &parent, const std::string &child) {
@@ -92,7 +94,6 @@ class TypeRegistry {
 		};
 		dfsDown(child);
 		dfsUp(parent);
-		
 	}
 
 	static std::unordered_set<std::string> getDescendants(const std::string &type) {
@@ -118,4 +119,3 @@ static std::function<Type *(Args...)> constructor_wrapper = [](Args... args) { r
 #define REGISTER_CONSTRUCTOR_WITH_ARGS(Type, ...) \
 	JOB(register_constructor_##Type,              \
 		{ TypeRegistry::registerConstructor(#Type, constructor_wrapper<Type, __VA_ARGS__>); });
-

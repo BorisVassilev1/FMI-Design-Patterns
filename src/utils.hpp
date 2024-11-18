@@ -4,11 +4,20 @@
 #include <type_traits>
 #include <cxxabi.h>
 
-#define JOB(name, code)             \
-	static int _job_##name = []() { \
-		code;                       \
-		return 0;                   \
+#define JOB(name, code)                    \
+	static int _job_##name = []() -> int { \
+		code;                              \
+		return 0;                          \
 	}();
+
+template <auto N>
+struct string_literal {
+	constexpr string_literal(const char (&str)[N]) { std::ranges::copy_n(str, N, value); }
+
+	char value[N];
+
+	constexpr operator const char *() const { return value; }
+};
 
 template <class T>
 auto f_name() {

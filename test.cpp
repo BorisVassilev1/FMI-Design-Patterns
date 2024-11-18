@@ -96,10 +96,6 @@ TEST_CASE("stringify figures") {
 
 TEST_CASE("inheritance") {
 	auto v = TypeRegistry::getChildren().at("Figure");
-	std::cout << "children of Figure: " << std::endl;
-	for (const auto& s : v)
-		std::cout << s << std::endl;
-	std::cout << std::endl;
 	CHECK_NE(std::find(v.begin(), v.end(), "Triangle"), v.end());
 	CHECK_NE(std::find(v.begin(), v.end(), "Rectangle"), v.end());
 	CHECK_NE(std::find(v.begin(), v.end(), "Circle"), v.end());
@@ -173,7 +169,7 @@ TEST_CASE("File Figure Factory") {
 
 TEST_CASE("Istream Factory exceptions") {
 	Figure* f = nullptr;
-	CHECK_THROWS_AS(f = figureFromString(""), std::runtime_error);
+	CHECK_EQ(f = figureFromString(""), nullptr);
 	CHECK_THROWS_AS(f = figureFromString("asdj"), std::runtime_error);
 	CHECK_THROWS_AS(f = figureFromString("Random"), std::runtime_error);
 	CHECK_THROWS_AS(f = figureFromString("STDIN"), std::runtime_error);
@@ -194,11 +190,11 @@ TEST_CASE("Abstract Factory") {
 	std::ifstream file("../tmp/test_file.txt", std::ios_base::trunc);
 	file.close();
 
-	std::istringstream is("Random STDIN File ../tmp/test_file.txt");
+	std::istringstream is("Random -1\nSTDIN -1\n File ../tmp/test_file.txt");
 	std::ostringstream os;
 	os.setstate(std::ios_base::badbit);
 
-	AbstractFigureFactory aff(is, os);
+	AbstractFigureFactory aff(is);
 
 	FigureFactory* f;
 	f = aff.create();
