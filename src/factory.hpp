@@ -41,6 +41,8 @@ class IstreamFactoryBase : public Factory<T> {
 		if (!in || in.eof()) return nullptr;
 		std::string figureType;
 		in >> figureType;
+
+		std::string input = figureType;
 		if (append_name) { figureType += type_name; }
 
 		std::size_t						argcnt = 0;
@@ -53,11 +55,11 @@ class IstreamFactoryBase : public Factory<T> {
 			argcnt			= data.argcnt;
 			constructor		= data.c;
 		} catch (std::exception &e) {
-			throw std::runtime_error(std::format("{} not recognized: \"{}\"", type_name, figureType));
+			throw std::runtime_error(std::format("{} not recognized: \"{}\"", type_name, input));
 		}
 
 		if (std::find(parents->begin(), parents->end(), std::string(type_name)) == parents->end()) {
-			throw std::runtime_error(std::format("figure type \"{}\" is not a {}", figureType, type_name));
+			throw std::runtime_error(std::format("figure type \"{}\" is not a {}", input, type_name));
 		}
 
 		std::vector<std::any> args;
@@ -88,6 +90,7 @@ class LineIstreamFactory : public IstreamFactoryBase<T, T_Name, append_name, Par
 
 		std::string figureType;
 		ss >> figureType;
+		std::string input = figureType;
 		if (append_name) { figureType += this->type_name; }
 
 		std::size_t						argcnt = 0;
@@ -100,11 +103,11 @@ class LineIstreamFactory : public IstreamFactoryBase<T, T_Name, append_name, Par
 			argcnt			= data.argcnt;
 			constructor		= data.c;
 		} catch (std::exception &e) {
-			throw std::runtime_error(std::format("{} not recognized: \"{}\"", this->type_name, figureType));
+			throw std::runtime_error(std::format("{} not recognized: \"{}\"", this->type_name, input));
 		}
 
 		if (std::find(parents->begin(), parents->end(), std::string(this->type_name)) == parents->end()) {
-			throw std::runtime_error(std::format("figure type \"{}\" is not a {}", figureType, this->type_name));
+			throw std::runtime_error(std::format("figure type \"{}\" is not a {}", input, this->type_name));
 		}
 
 		std::vector<std::any> args;

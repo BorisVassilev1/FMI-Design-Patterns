@@ -9,7 +9,7 @@ INHERIT(Cloneable, Figure);
 INHERIT(Stringifiable, Figure);
 class Figure : public Cloneable, public Stringifiable {
    public:
-	virtual float perimeter() const = 0;
+	virtual float	perimeter() const	   = 0;
 	virtual Figure *clone() const override = 0;
 	virtual ~Figure() {};
 };
@@ -29,11 +29,8 @@ class Triangle : public Figure {
 	}
 	float	  perimeter() const override { return a + b + c; }
 	Triangle *clone() const override { return new Triangle(*this); }
-	explicit  operator std::string() const override {
-		 return std::format("Triangle {} {} {}", a, b, c);
-	}
+	explicit  operator std::string() const override { return std::format("Triangle {} {} {}", a, b, c); }
 };
-REGISTER_CONSTRUCTOR_WITH_ARGS(Triangle, float, float, float);
 
 INHERIT(Figure, Circle);
 class Circle : public Figure {
@@ -47,11 +44,8 @@ class Circle : public Figure {
 	}
 	float	 perimeter() const override { return 2 * M_PI * r; }
 	Circle	*clone() const override { return new Circle(*this); }
-	explicit operator std::string() const override {
-		return std::format("Circle {}", r);
-	}
+	explicit operator std::string() const override { return std::format("Circle {}", r); }
 };
-REGISTER_CONSTRUCTOR_WITH_ARGS(Circle, float);
 
 INHERIT(Figure, Rectangle);
 class Rectangle : public Figure {
@@ -66,8 +60,11 @@ class Rectangle : public Figure {
 	}
 	float	   perimeter() const override { return 2 * (a + b); }
 	Rectangle *clone() const override { return new Rectangle(*this); }
-	explicit   operator std::string() const override {
-		return std::format("Rectangle {} {}", a, b);
-	}
+	explicit   operator std::string() const override { return std::format("Rectangle {} {}", a, b); }
 };
-REGISTER_CONSTRUCTOR_WITH_ARGS(Rectangle, float, float);
+
+JOB(register_figure_constructors,{
+	TypeRegistry::registerConstructorForType<Triangle, "Triangle", float, float, float>();
+	TypeRegistry::registerConstructorForType<Circle, "Circle", float>();
+	TypeRegistry::registerConstructorForType<Rectangle, "Rectangle", float, float>();
+});

@@ -60,6 +60,13 @@ class TypeRegistry {
 									const std::string &description = "") {
 		getConstructors().insert({typeName, {sizeof...(Args), description, argsToVector(func)}});
 	}
+	template <class T, string_literal T_name, class...Args>
+	static void registerConstructorForType() {
+		const char* n = T_name;
+		registerConstructor(n, std::function([](Args... args) -> T* {
+			return new T(args ...);
+		}));
+	}
 
 	static void registerSuccessor(const std::string &parent, const std::string &child) {
 		auto &childrenOfParent = getChildren()[parent];
@@ -110,12 +117,3 @@ class TypeRegistry {
 };
 
 #define INHERIT(parent, child) JOB(inherit_##parent##child, TypeRegistry::registerSuccessor(#parent, #child););
-
-template <class Type, class... Args>
-static std::function<Type *(Args...)> constructor_wrapper = [](Args... args) { return new Type(args...); };
-
-#define REGISTER_CONSTRUCTOR(Type) \
-	JOB(register_constructor_##Type, { TypeRegistry::registerConstructor(#Type, constructor_wrapper<Type>); });
-#define REGISTER_CONSTRUCTOR_WITH_ARGS(Type, ...) \
-	JOB(register_constructor_##Type,              \
-		{ TypeRegistry::registerConstructor(#Type, constructor_wrapper<Type, __VA_ARGS__>); });

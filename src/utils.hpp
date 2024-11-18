@@ -4,9 +4,9 @@
 #include <type_traits>
 #include <cxxabi.h>
 
-#define JOB(name, code)                    \
+#define JOB(name, ...)                     \
 	static int _job_##name = []() -> int { \
-		code;                              \
+		__VA_ARGS__;                       \
 		return 0;                          \
 	}();
 
