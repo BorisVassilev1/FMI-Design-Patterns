@@ -41,8 +41,8 @@ class RandomFigureFactory : public FigureFactory {
 };
 
 INHERIT(FigureFactory, IstreamFigureFactory);
-class IstreamFigureFactory : public IstreamFactoryBase<Figure, "Figure", false, float> {
-	using IstreamFactoryBase::IstreamFactoryBase;
+class IstreamFigureFactory : public IstreamFactory<Figure, "Figure", false, float> {
+	using IstreamFactory::IstreamFactory;
 };
 
 inline std::unique_ptr<Figure> figureFromString(const std::string &s) {

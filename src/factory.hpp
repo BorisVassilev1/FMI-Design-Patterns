@@ -16,13 +16,13 @@ class Factory {
 };
 
 template <class T, string_literal T_Name, bool append_name, class Param>
-class IstreamFactoryBase : public Factory<T> {
+class IstreamFactory : public Factory<T> {
    protected:
 	std::istream				&in;
 	static constexpr const char *type_name = T_Name;
 
    public:
-	IstreamFactoryBase(std::istream &in) : in(in) {}
+	IstreamFactory(std::istream &in) : in(in) {}
 
 	static auto listFactoryTypes() {
 		auto &v = TypeRegistry::getChildren().at(type_name);
@@ -79,9 +79,9 @@ class IstreamFactoryBase : public Factory<T> {
 };
 
 template <class T, string_literal T_Name, bool append_name, class Param>
-class LineIstreamFactory : public IstreamFactoryBase<T, T_Name, append_name, Param> {
+class LineIstreamFactory : public IstreamFactory<T, T_Name, append_name, Param> {
    public:
-	using IstreamFactoryBase<T, T_Name, append_name, Param>::IstreamFactoryBase;
+	using IstreamFactory<T, T_Name, append_name, Param>::IstreamFactory;
 
 	std::unique_ptr<T> create() override {
 		if (!this->in || this->in.eof()) return nullptr;
