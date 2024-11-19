@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <memory>
 
 #include "figures.hpp"
 #include "factory.hpp"
@@ -18,7 +19,7 @@ class RandomFigureFactory : public FigureFactory {
    public:
 	RandomFigureFactory(std::size_t figure_count = -1) : figure_count(figure_count) {}
 
-	Figure *create() override {
+	std::unique_ptr<Figure> create() override {
 		if (figure_count == 0) return nullptr;
 		const auto &children = TypeRegistry::getChildren().at("Figure");
 		int			index	 = rand() % children.size();
@@ -33,7 +34,9 @@ class RandomFigureFactory : public FigureFactory {
 
 		auto res = constructor(args);
 		if(figure_count != -1) --figure_count;
-		return static_cast<Figure *>(res);
+		std::unique_ptr<Figure> ptr;
+		ptr.reset(static_cast<Figure*>(res));
+		return ptr;
 	}
 };
 
@@ -42,7 +45,7 @@ class IstreamFigureFactory : public IstreamFactoryBase<Figure, "Figure", false, 
 	using IstreamFactoryBase::IstreamFactoryBase;
 };
 
-inline Figure *figureFromString(const std::string &s) {
+inline std::unique_ptr<Figure> figureFromString(const std::string &s) {
 	std::stringstream	 ss(s);
 	IstreamFigureFactory ff(ss);
 	return ff.create();
@@ -53,7 +56,7 @@ class STDINFigureFactory : public IstreamFigureFactory {
 	std::size_t figure_count;
    public:
 	STDINFigureFactory(std::size_t figure_count) : IstreamFigureFactory(std::cin), figure_count(figure_count) {}
-	Figure* create() override {
+	std::unique_ptr<Figure> create() override {
 		if(!figure_count) return nullptr;
 		if(figure_count != -1) --figure_count;
 		return IstreamFigureFactory::create();

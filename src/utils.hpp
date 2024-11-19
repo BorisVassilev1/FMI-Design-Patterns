@@ -10,6 +10,8 @@
 		return 0;                          \
 	}();
 
+#define STR(x) #x
+
 template <auto N>
 struct string_literal {
 	constexpr string_literal(const char (&str)[N]) { std::ranges::copy_n(str, N, value); }

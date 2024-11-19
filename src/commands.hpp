@@ -8,7 +8,7 @@
 
 namespace commands {
 
-using Command = std::function<bool(std::vector<Figure *> &, std::istream &, std::ostream &)>;
+using Command = std::function<bool(std::vector<std::unique_ptr<Figure>> &, std::istream &, std::ostream &)>;
 
 class CommandFactory : public LineIstreamFactory<commands::Command, "Command", false, std::string> {
    public:
@@ -16,7 +16,7 @@ class CommandFactory : public LineIstreamFactory<commands::Command, "Command", f
 };
 
 static auto list = []() -> Command * {
-	return new Command([](std::vector<Figure *> &data, std::istream &in, std::ostream &out) -> bool {
+	return new Command([](std::vector<std::unique_ptr<Figure>> &data, std::istream &in, std::ostream &out) -> bool {
 		for (std::size_t i = 0; i < data.size(); ++i) {
 			out << i << ": " << (std::string)*data[i] << std::endl;
 		}
@@ -26,9 +26,8 @@ static auto list = []() -> Command * {
 
 static auto remove = [](std::string id) -> Command * {
 	std::size_t index = std::stoi(id);
-	return new Command([index](std::vector<Figure *> &data, std::istream &in, std::ostream &out) -> bool {
+	return new Command([index](std::vector<std::unique_ptr<Figure>> &data, std::istream &in, std::ostream &out) -> bool {
 		if (index >= data.size()) { throw std::out_of_range("Index out of range"); }
-		delete data[index];
 		data.erase(data.begin() + index);
 		std::cout << "removed " << index << std::endl;
 		return true;
@@ -38,7 +37,7 @@ static auto remove = [](std::string id) -> Command * {
 static auto erase = [](std::string begin, std::string end) -> Command * {
 	std::size_t i = std::stoi(begin);
 	std::size_t j = std::stoi(end);
-	return new Command([i, j](std::vector<Figure *> &data, std::istream &in, std::ostream &out) -> bool {
+	return new Command([i, j](std::vector<std::unique_ptr<Figure>> &data, std::istream &in, std::ostream &out) -> bool {
 		if (i >= data.size() || j >= data.size()) throw std::out_of_range("Indices out of range");
 		if (i > j) throw std::invalid_argument("i > j");
 		data.erase(data.begin() + i, data.begin() + (j + 1));
@@ -49,19 +48,19 @@ static auto erase = [](std::string begin, std::string end) -> Command * {
 
 static auto duplicate = [](std::string id) -> Command * {
 	std::size_t index = std::stoi(id);
-	return new Command([index](std::vector<Figure *> &data, std::istream &in, std::ostream &out) -> bool {
+	return new Command([index](std::vector<std::unique_ptr<Figure>> &data, std::istream &in, std::ostream &out) -> bool {
 		if (index >= data.size()) { throw std::out_of_range("Index out of range"); }
-		data.push_back(data[index]->clone());
+		data.emplace_back(data[index]->clone());
 		std::cout << "duplicated " << index << std::endl;
 		return true;
 	});
 };
 
 static auto store = [](std::string filename) -> Command * {
-	return new Command([filename](std::vector<Figure *> &data, std::istream &in, std::ostream &out) -> bool {
+	return new Command([filename](std::vector<std::unique_ptr<Figure>> &data, std::istream &in, std::ostream &out) -> bool {
 		std::ofstream file((filename));
 		if (!file.is_open()) { throw std::runtime_error("Cannot open file"); }
-		for (auto *figure : data) {
+		for (auto &figure : data) {
 			file << (std::string)*figure << std::endl;
 			if (!file) { throw std::runtime_error("Cannot write to file"); }
 		}
@@ -72,11 +71,11 @@ static auto store = [](std::string filename) -> Command * {
 };
 
 static auto exit = []() -> Command * {
-	return new Command([](std::vector<Figure *> &data, std::istream &in, std::ostream &out) -> bool { return false; });
+	return new Command([](std::vector<std::unique_ptr<Figure>> &data, std::istream &in, std::ostream &out) -> bool { return false; });
 };
 
 static auto help = []() -> Command * {
-	return new Command([](std::vector<Figure *> &data, std::istream &in, std::ostream &out) -> bool {
+	return new Command([](std::vector<std::unique_ptr<Figure>> &data, std::istream &in, std::ostream &out) -> bool {
 		auto v = CommandFactory::listFactoryTypes();
 		out << "Help menu: " << std::endl;
 		for (const auto &[name, argcnt, desc] : v) {
@@ -87,7 +86,7 @@ static auto help = []() -> Command * {
 };
 
 static auto clear = []() -> Command * {
-	return new Command([](std::vector<Figure *> &data, std::istream &in, std::ostream &out) -> bool {
+	return new Command([](std::vector<std::unique_ptr<Figure>> &data, std::istream &in, std::ostream &out) -> bool {
 		out << "\x1B[2J\x1B[H" << std::flush;
 		return true;
 	});

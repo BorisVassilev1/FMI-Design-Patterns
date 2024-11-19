@@ -121,54 +121,58 @@ TEST_CASE("Random Factory") {
 	srand(42);
 	RandomFigureFactory ff;
 	for (int i = 0; i < 100; ++i) {
-		Figure* f = ff.create();
+		auto f = ff.create();
 		CHECK(f->perimeter() >= 0);
-		CHECK(f->perimeter() <= 63);
-		delete f;
+		if (dynamic_cast<Triangle*>(f.get())) {
+			CHECK(f->perimeter() >= 15);
+			CHECK(f->perimeter() <= 30);
+		}
+		if (dynamic_cast<Circle*>(f.get())) {
+			CHECK(f->perimeter() >= 31);
+			CHECK(f->perimeter() <= 63);
+		}
+		if (dynamic_cast<Rectangle*>(f.get())) {
+			CHECK(f->perimeter() >= 20);
+			CHECK(f->perimeter() <= 40);
+		}
 	}
 }
 
 TEST_CASE("Istream Factory") {
-	std::stringstream	 ss("Triangle 3.0 4.00 5e0\nCircle 1\nRectangle 2 3");
-	IstreamFigureFactory ff(ss);
-	Figure*				 f;
+	std::stringstream		ss("Triangle 3.0 4.00 5e0\nCircle 1\nRectangle 2 3");
+	IstreamFigureFactory	ff(ss);
+	std::unique_ptr<Figure> f;
 
 	f = ff.create();
 	CHECK_EQ((std::string)*f, "Triangle 3 4 5");
-	delete f;
 
 	f = ff.create();
 	CHECK_EQ((std::string)*f, "Circle 1");
-	delete f;
 
 	f = ff.create();
 	CHECK_EQ((std::string)*f, "Rectangle 2 3");
-	delete f;
 }
 
 TEST_CASE("File Figure Factory") {
-	std::ofstream file("../tmp/test_file.txt");
+	std::ofstream file(PROJECT_SOURCE_DIR "/tmp/test_file.txt");
 	file << "Triangle 3 4 5\nCircle 1 \n Rectangle 2 3";
 	file.close();
 
-	FileFigureFactory ff("../tmp/test_file.txt");
-	Figure*			  f;
+	FileFigureFactory		ff(PROJECT_SOURCE_DIR "/tmp/test_file.txt");
+	std::unique_ptr<Figure> f;
 
 	f = ff.create();
 	CHECK_EQ((std::string)*f, "Triangle 3 4 5");
-	delete f;
 
 	f = ff.create();
 	CHECK_EQ((std::string)*f, "Circle 1");
-	delete f;
 
 	f = ff.create();
 	CHECK_EQ((std::string)*f, "Rectangle 2 3");
-	delete f;
 }
 
 TEST_CASE("Istream Factory exceptions") {
-	Figure* f = nullptr;
+	std::unique_ptr<Figure> f = nullptr;
 	CHECK_EQ(f = figureFromString(""), nullptr);
 	CHECK_THROWS_AS(f = figureFromString("asdj"), std::runtime_error);
 	CHECK_THROWS_AS(f = figureFromString("Random"), std::runtime_error);
@@ -187,25 +191,22 @@ TEST_CASE("Istream Factory exceptions") {
 }
 
 TEST_CASE("Abstract Factory") {
-	std::ifstream file("../tmp/test_file.txt", std::ios_base::trunc);
+	std::ifstream file(PROJECT_SOURCE_DIR "/tmp/test_file.txt", std::ios_base::trunc);
 	file.close();
 
-	std::istringstream is("Random -1\nSTDIN -1\n File ../tmp/test_file.txt");
+	std::istringstream is("Random -1\nSTDIN -1\n File " PROJECT_SOURCE_DIR "/tmp/test_file.txt");
 	std::ostringstream os;
 	os.setstate(std::ios_base::badbit);
 
 	AbstractFigureFactory aff(is);
 
-	FigureFactory* f;
+	std::unique_ptr<FigureFactory> f;
 	f = aff.create();
-	CHECK_NE(dynamic_cast<RandomFigureFactory*>(f), nullptr);
-	delete f;
+	CHECK_NE(dynamic_cast<RandomFigureFactory*>(f.get()), nullptr);
 
 	f = aff.create();
-	CHECK_NE(dynamic_cast<STDINFigureFactory*>(f), nullptr);
-	delete f;
+	CHECK_NE(dynamic_cast<STDINFigureFactory*>(f.get()), nullptr);
 
 	f = aff.create();
-	CHECK_NE(dynamic_cast<FileFigureFactory*>(f), nullptr);
-	delete f;
+	CHECK_NE(dynamic_cast<FileFigureFactory*>(f.get()), nullptr);
 }

@@ -11,7 +11,7 @@
 template <class T>
 class Factory {
    public:
-	virtual T *create() = 0;
+	virtual std::unique_ptr<T> create() = 0;
 	virtual ~Factory() {};
 };
 
@@ -36,7 +36,7 @@ class IstreamFactoryBase : public Factory<T> {
 		return k;
 	}
 
-	T *create() override {
+	std::unique_ptr<T> create() override {
 		while(std::isspace(in.peek())) in.ignore();
 		if (!in || in.eof()) return nullptr;
 		std::string figureType;
@@ -72,7 +72,9 @@ class IstreamFactoryBase : public Factory<T> {
 			if (in.eof()) break;
 		}
 
-		return static_cast<T *>(constructor(args));
+		std::unique_ptr<T> ptr;
+		ptr.reset(static_cast<T *>(constructor(args)));
+		return ptr;
 	}
 };
 
@@ -81,7 +83,7 @@ class LineIstreamFactory : public IstreamFactoryBase<T, T_Name, append_name, Par
    public:
 	using IstreamFactoryBase<T, T_Name, append_name, Param>::IstreamFactoryBase;
 
-	T *create() override {
+	std::unique_ptr<T> create() override {
 		if (!this->in || this->in.eof()) return nullptr;
 		std::string strArgs;
 		std::getline(this->in, strArgs);
@@ -117,7 +119,9 @@ class LineIstreamFactory : public IstreamFactoryBase<T, T_Name, append_name, Par
 			if (!ss) break;
 			args.push_back(p);
 		}
-
-		return static_cast<T *>(constructor(args));
+		
+		std::unique_ptr<T> ptr;
+		ptr.reset(static_cast<T *>(constructor(args)));
+		return ptr;
 	}
 };

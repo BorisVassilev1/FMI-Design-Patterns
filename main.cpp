@@ -15,7 +15,7 @@ int main() {
 	}
 	std::cout << "]" << std::endl;
 
-	FigureFactory *factory = nullptr;
+	std::unique_ptr<FigureFactory> factory = nullptr;
 	do {
 		try {
 			std::cout << "==> " << std::flush;
@@ -24,14 +24,14 @@ int main() {
 	} while (factory == nullptr);
 	std::size_t figureCount = -1;
 
-	std::vector<Figure *> figures;
+	std::vector<std::unique_ptr<Figure>> figures;
 
 	while (true) {
 		try {
-			Figure *f = factory->create();
+			std::unique_ptr<Figure> f = factory->create();
 			if (f == nullptr) break;
-			figures.push_back(f);
-		} catch (const std::exception &e) { std::cerr << e.what() << std::endl; }
+			figures.push_back(std::move(f));
+		} catch (const std::exception &e) { std::cerr << "error" << e.what() << std::endl; }
 	}
 
 	std::string				 command;
@@ -41,7 +41,7 @@ int main() {
 	do {
 		try {
 			std::cout << (result ? "--> " : "-<< ") << std::flush;
-			commands::Command *cmd = cf.create();
+			std::unique_ptr<commands::Command> cmd = cf.create();
 			if (cmd == nullptr) continue;
 
 			bool res = (*cmd)(figures, std::cin, std::cout);
