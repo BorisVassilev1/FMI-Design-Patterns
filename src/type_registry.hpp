@@ -102,18 +102,6 @@ class TypeRegistry {
 		dfsDown(child);
 		dfsUp(parent);
 	}
-
-	static std::unordered_set<std::string> getDescendants(const std::string &type) {
-		std::unordered_set<std::string>			 result;
-		std::function<void(const std::string &)> dfs = [&](const std::string &type) {
-			result.insert(type);
-			for (const auto &child : getChildren().at(type)) {
-				dfs(child);
-			}
-		};
-		dfs(type);
-		return result;
-	}
 };
 
 #define INHERIT(parent, child) JOB(inherit_##parent##child, TypeRegistry::registerSuccessor(#parent, #child););

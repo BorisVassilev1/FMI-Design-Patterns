@@ -55,7 +55,7 @@ INHERIT(IstreamFigureFactory, STDINFigureFactory);
 class STDINFigureFactory : public IstreamFigureFactory {
 	std::size_t figure_count;
    public:
-	STDINFigureFactory(std::size_t figure_count) : IstreamFigureFactory(std::cin), figure_count(figure_count) {}
+	STDINFigureFactory(std::size_t figure_count = -1) : IstreamFigureFactory(std::cin), figure_count(figure_count) {}
 	std::unique_ptr<Figure> create() override {
 		if(!figure_count) return nullptr;
 		if(figure_count != -1) --figure_count;

@@ -50,12 +50,16 @@ TEST_CASE("figure invalid arguments NAN") {
 }
 
 TEST_CASE("figure overflow") {
-	CHECK_THROWS_AS(Triangle(1, 2, std::numeric_limits<float>::max()), std::overflow_error);
-	CHECK_THROWS_AS(Triangle(1, std::numeric_limits<float>::max(), 2), std::overflow_error);
-	CHECK_THROWS_AS(Triangle(std::numeric_limits<float>::max(), 2, 1), std::overflow_error);
-	CHECK_THROWS_AS(Triangle(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(),
-							 std::numeric_limits<float>::max()),
-					std::overflow_error);
+	float flt_max = std::numeric_limits<float>::max();
+
+	CHECK_THROWS_AS(Triangle(1, 2, flt_max), std::overflow_error);
+	CHECK_THROWS_AS(Triangle(1, flt_max, 2), std::overflow_error);
+	CHECK_THROWS_AS(Triangle(flt_max, 2, 1), std::overflow_error);
+	CHECK_THROWS_AS(Triangle(flt_max, flt_max, flt_max), std::overflow_error);
+
+	CHECK_THROWS_AS(Circle(float(flt_max)), std::overflow_error);
+	CHECK_THROWS_AS(Rectangle(flt_max, 1), std::overflow_error);
+	CHECK_THROWS_AS(Rectangle(1, flt_max), std::overflow_error);
 }
 
 TEST_CASE("perimeters") {
@@ -138,6 +142,28 @@ TEST_CASE("Random Factory") {
 	}
 }
 
+TEST_CASE("Random Factory with figure count") {
+	srand(42);
+	RandomFigureFactory ff(100);
+	for (int i = 0; i < 100; ++i) {
+		auto f = ff.create();
+		CHECK(f->perimeter() >= 0);
+		if (dynamic_cast<Triangle*>(f.get())) {
+			CHECK(f->perimeter() >= 15);
+			CHECK(f->perimeter() <= 30);
+		}
+		if (dynamic_cast<Circle*>(f.get())) {
+			CHECK(f->perimeter() >= 31);
+			CHECK(f->perimeter() <= 63);
+		}
+		if (dynamic_cast<Rectangle*>(f.get())) {
+			CHECK(f->perimeter() >= 20);
+			CHECK(f->perimeter() <= 40);
+		}
+	}
+	CHECK_EQ(ff.create(), nullptr);
+}
+
 TEST_CASE("Istream Factory") {
 	std::stringstream		ss("Triangle 3.0 4.00 5e0\nCircle 1\nRectangle 2 3");
 	IstreamFigureFactory	ff(ss);
@@ -171,12 +197,37 @@ TEST_CASE("File Figure Factory") {
 	CHECK_EQ((std::string)*f, "Rectangle 2 3");
 }
 
+TEST_CASE("STDIN Figure Factory") {
+	std::istringstream is("Triangle 3 4 5\nCircle 1 \n Rectangle 2 3\n askd");
+	std::cin.rdbuf(is.rdbuf());
+	STDINFigureFactory		ff;
+	std::unique_ptr<Figure> f;
+
+	f = ff.create();
+	CHECK_EQ((std::string)*f, "Triangle 3 4 5");
+	f = ff.create();
+	CHECK_EQ((std::string)*f, "Circle 1");
+	f = ff.create();
+	CHECK_EQ((std::string)*f, "Rectangle 2 3");
+}
+
+TEST_CASE("STDIN Figure Factory with figure count") {
+	std::istringstream is("Triangle 3 4 5\nCircle 1 \n Rectangle 2 3\n askd");
+	std::cin.rdbuf(is.rdbuf());
+	STDINFigureFactory		ff(1);
+	std::unique_ptr<Figure> f;
+
+	f = ff.create();
+	CHECK_EQ((std::string)*f, "Triangle 3 4 5");
+	CHECK_EQ(ff.create(), nullptr);
+}
+
 TEST_CASE("Istream Factory exceptions") {
 	std::unique_ptr<Figure> f = nullptr;
 	CHECK_EQ(f = figureFromString(""), nullptr);
 	CHECK_THROWS_AS(f = figureFromString("asdj"), std::runtime_error);
-	CHECK_THROWS_AS(f = figureFromString("Random"), std::runtime_error);
-	CHECK_THROWS_AS(f = figureFromString("STDIN"), std::runtime_error);
+	CHECK_THROWS_AS(f = figureFromString("RandomFigureFactory"), std::runtime_error);
+	CHECK_THROWS_AS(f = figureFromString("STDINFigureFactory"), std::runtime_error);
 
 	CHECK_THROWS_AS(f = figureFromString("Triangle "), std::runtime_error);
 	CHECK_THROWS_AS(f = figureFromString("Triangle 1 "), std::runtime_error);
@@ -194,7 +245,8 @@ TEST_CASE("Abstract Factory") {
 	std::ifstream file(PROJECT_SOURCE_DIR "/tmp/test_file.txt", std::ios_base::trunc);
 	file.close();
 
-	std::istringstream is("Random -1\nSTDIN -1\n File " PROJECT_SOURCE_DIR "/tmp/test_file.txt");
+	std::istringstream is("Random -1\nSTDIN -1\n File " PROJECT_SOURCE_DIR
+						  "/tmp/test_file.txt \n Triangle 1 2 3\n asaskd");
 	std::ostringstream os;
 	os.setstate(std::ios_base::badbit);
 
@@ -209,4 +261,6 @@ TEST_CASE("Abstract Factory") {
 
 	f = aff.create();
 	CHECK_NE(dynamic_cast<FileFigureFactory*>(f.get()), nullptr);
+
+	CHECK_THROWS_AS(aff.create(), std::runtime_error);
 }

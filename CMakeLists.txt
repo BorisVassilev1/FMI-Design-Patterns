@@ -7,7 +7,7 @@ project(
 
 # Prepare doctest for other targets to use
 
-
+SET(CMAKE_CXX_COMPILER g++)
 
 file(GLOB_RECURSE FIGURES_SOURCES
 	./src/*.cpp
@@ -20,16 +20,25 @@ target_compile_options(main PRIVATE -fsanitize=address)
 target_link_options(main PRIVATE -fsanitize=address)
 target_include_directories(main PUBLIC ./lib/)
 
+
+SET(COVERAGE_FLAGS 
+	--coverage
+	-fprofile-arcs
+	-ftest-coverage
+)
+
 # Make test executable
 add_executable(tests test.cpp ${FIGURES_SOURCES})
 target_compile_definitions(tests PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 set_target_properties(tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ./)
 target_compile_features(tests PRIVATE cxx_std_20)
-target_compile_options(tests PRIVATE -fsanitize=address)
-target_link_options(tests PRIVATE -fsanitize=address)
+target_compile_options(tests PRIVATE ${COVERAGE_FLAGS} -g)
+target_link_options(tests PRIVATE ${COVERAGE_FLAGS})
 target_include_directories(tests PUBLIC ./lib/)
 
 set(CMAKE_BUILD_TYPE Debug)
+
+
 
 list(APPEND CMAKE_CTEST_ARGUMENTS "--output-on-failure")
 

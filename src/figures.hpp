@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include <format>
 #include <stdexcept>
 #include "cloneable.hpp"
 #include "stringifiable.hpp"
