@@ -4,7 +4,6 @@
 int main() {
 	std::string inputMethod;
 
-
 	std::vector<std::unique_ptr<Figure>> figures;
 
 	auto load = std::make_unique<commands::Command>();
@@ -13,20 +12,20 @@ int main() {
 
 	std::string				 command;
 	commands::CommandFactory cf(std::cin);
-	bool					 result = true;
+	bool					 lastCommandSuccess = true;
 
 	do {
 		try {
-			std::cout << (result ? "--> " : "-<< ") << std::flush;
+			std::cout << (lastCommandSuccess ? "--> " : "-<< ") << std::flush;
 			std::unique_ptr<commands::Command> cmd = cf.create();
 			if (cmd == nullptr) continue;
 
-			bool res = (*cmd)(figures, std::cin, std::cout);
-			if (!res) break;
-			result = true;
+			bool shouldBreak = (*cmd)(figures, std::cin, std::cout);
+			if (!shouldBreak) break;
+			lastCommandSuccess = true;
 		} catch (const std::exception &e) {
 			std::cerr << "error: " << e.what() << std::endl;
-			result = false;
+			lastCommandSuccess = false;
 		}
 	} while (true);
 
