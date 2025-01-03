@@ -18,7 +18,7 @@ set_target_properties(main PROPERTIES RUNTIME_OUTPUT_DIRECTORY ../)
 target_compile_features(main PRIVATE cxx_std_20)
 target_compile_options(main PRIVATE -fsanitize=address)
 target_link_options(main PRIVATE -fsanitize=address)
-target_include_directories(main PUBLIC ./lib/)
+target_include_directories(main PUBLIC ../lib/)
 
 
 SET(COVERAGE_FLAGS 
@@ -34,7 +34,7 @@ set_target_properties(tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ./)
 target_compile_features(tests PRIVATE cxx_std_20)
 target_compile_options(tests PRIVATE ${COVERAGE_FLAGS} -g)
 target_link_options(tests PRIVATE ${COVERAGE_FLAGS})
-target_include_directories(tests PUBLIC ./lib/)
+target_include_directories(tests PUBLIC ../lib/)
 
 set(CMAKE_BUILD_TYPE Debug)
 
