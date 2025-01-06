@@ -20,8 +20,8 @@ class Concat {
 	auto begin() { return Iterator<decltype(rng1->begin()), decltype(rng2->begin())>(rng1->begin(), this, 0); }
 	auto end() { return Iterator<decltype(rng1->begin()), decltype(rng2->begin())>(rng2->end(), this, 1); }
 
-	auto begin() const { return Iterator(rng1->begin(), this); }
-	auto end() const { return Iterator(rng2->end(), this); }
+	auto begin() const { return ConstIterator<decltype(rng1->begin()), decltype(rng2->begin())>(rng1->begin(), this, 0); }
+	auto end() const { return ConstIterator<decltype(rng1->begin()), decltype(rng2->begin())>(rng2->end(), this, 1); }
 
 	template <class It1, class It2>
 	class Iterator {
@@ -80,6 +80,13 @@ class Concat {
 			} else return false;
 		}
 		friend class Concat<T, U>;
+	};
+
+	template <class It1, class It2>
+	class ConstIterator : public Iterator<It1, It2>{
+		
+		inline auto operator*() = delete;
+		inline const auto operator*() const { return this->container.getFlags() ? *this->it2 : *this->it1; }
 	};
 };
 

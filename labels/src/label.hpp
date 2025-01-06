@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <iostream>
 #include <string>
 
@@ -9,11 +10,27 @@ class Label {
 };
 class SimpleLabel : public Label {
    public:
-	SimpleLabel(std::string value) { this->value = value; }
+	SimpleLabel(std::string value) : value(value) {}
 	std::string getText() const { return value; }
 
    private:
 	std::string value;
+};
+
+struct Color {
+	std::uint8_t r, g, b;
+};
+
+class RichLabel : public SimpleLabel {
+   public:
+	RichLabel(std::string &value, Color c, const std::string &font = "Arial", uint8_t size = 13)
+		: SimpleLabel(value), c(c), font(font), size(size) {}
+
+   private:
+	std::string value;
+	std::string font;
+	Color		c;
+	uint8_t		size;
 };
 
 class LabelPrinter {

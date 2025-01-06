@@ -17,7 +17,7 @@ class FlaggedPtr {
 	uint64_t ptr;
 
    public:
-	FlaggedPtr(T* ptr) : ptr((uint64_t)ptr) { std::cout << std::bitset<64>(mask) << " " << space << std::endl; }
+	FlaggedPtr(T* ptr) : ptr((uint64_t)ptr) {}
 	static const int space = log2(alignof(T));
 	T*		  operator->() { return (T*)(ptr & mask); }
 	T&		  operator*() { return *(T*)(ptr & mask); }

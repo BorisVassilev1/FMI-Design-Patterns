@@ -3,7 +3,8 @@
 #include "src/concat.hpp"
 #include "src/flaggedptr.hpp"
 #include "src/label.hpp"
-#include "src/labelModifiers.hpp"
+#include "src/labelTransformations.hpp"
+
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest.h>
 
@@ -53,18 +54,16 @@ TEST_CASE("Concat") {
 	}
 
 	SUBCASE("more strings") {
-
 		std::string s1 = "HELLO ";
 		std::string s2 = "World ";
 		std::string s3 = "!!!";
 
-		auto r = Concat(s1, Concat(s2, s3));
+		auto		r = Concat(s1, Concat(s2, s3));
 		std::string s;
-		for(auto c : r) {
+		for (auto c : r) {
 			s.push_back(c);
 		}
 		CHECK_EQ(s, "HELLO World !!!");
-
 	}
 }
 
@@ -76,10 +75,31 @@ TEST_CASE("Label Creation") {
 }
 
 TEST_CASE("Transformations") {
-	CHECK_EQ(Capitalize().apply("some text"), "Some text");
-	CHECK_EQ(Capitalize().apply(" some text"), " some text");
-	CHECK_EQ(LeftTrim().apply("   some text"), "some text");
-	CHECK_EQ(LeftTrim().apply("some text"), "some text");
-	CHECK_EQ(RightTrim().apply("some text   "), "some text");
-	CHECK_EQ(RightTrim().apply("some text"), "some text");
+	SUBCASE("Capitalize") {
+		CHECK_EQ(CapitalizeTransformation().apply("some text"), "Some text");
+		CHECK_EQ(CapitalizeTransformation().apply(" some text"), " some text");
+	}
+	SUBCASE("LeftTrim") {
+		CHECK_EQ(LeftTrimTransformation().apply("   some text"), "some text");
+		CHECK_EQ(LeftTrimTransformation().apply("some text"), "some text");
+	}
+	SUBCASE("RightTrim") {
+		CHECK_EQ(RightTrimTransformation().apply("some text   "), "some text");
+		CHECK_EQ(RightTrimTransformation().apply("some text"), "some text");
+	}
+	SUBCASE("NormalizeSpace") {
+		CHECK_EQ(NormalizeSpaceTransformation().apply(" some text "), " some text ");
+		CHECK_EQ(NormalizeSpaceTransformation().apply("  some   text   "), " some text ");
+	}
+	SUBCASE("Censor") {
+		CHECK_EQ(CensorTransformation("abc").apply(" abc def abcdef"), " *** def ***def");
+		CHECK_EQ(CensorTransformation("abc").apply(" abc def abcdef"), " *** def ***def");
+		CHECK_EQ(CensorTransformation("aba").apply(" aba def ababa"), " *** def *****");
+	}
+	SUBCASE("Replace") {
+		CHECK_EQ(ReplaceTransformation("abc", "d").apply(" abc abcdef"), " d ddef");
+		CHECK_EQ(ReplaceTransformation("abc", "abd").apply(" abd abddef"), " abd abddef");
+		CHECK_EQ(ReplaceTransformation("abc", "abd").apply(" abc abcdef"), " abd abddef");
+		CHECK_EQ(ReplaceTransformation("abc", "abde").apply(" abc abcdef"), " abde abdedef");
+	}
 }
