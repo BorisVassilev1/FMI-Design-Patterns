@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <cctype>
 #include <functional>
 #include <string>
 #include <string>
@@ -7,6 +8,7 @@
 class LabelTransformation {
    public:
 	virtual std::string apply(std::string &&text) const = 0;
+	virtual ~LabelTransformation() {}
 };
 
 class CapitalizeTransformation : public LabelTransformation {

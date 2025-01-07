@@ -11,7 +11,7 @@ class Label {
 class SimpleLabel : public Label {
    public:
 	SimpleLabel(std::string value) : value(value) {}
-	std::string getText() const { return value; }
+	std::string getText() const override { return value; }
 
    private:
 	std::string value;
@@ -31,6 +31,8 @@ class RichLabel : public SimpleLabel {
 	std::string font;
 	Color		c;
 	uint8_t		size;
+
+	std::string getText() const override {return value;}
 };
 
 class LabelPrinter {

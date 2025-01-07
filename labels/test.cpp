@@ -3,6 +3,7 @@
 #include "src/concat.hpp"
 #include "src/flaggedptr.hpp"
 #include "src/label.hpp"
+#include "src/labelDecorators.hpp"
 #include "src/labelTransformations.hpp"
 
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
@@ -101,5 +102,44 @@ TEST_CASE("Transformations") {
 		CHECK_EQ(ReplaceTransformation("abc", "abd").apply(" abd abddef"), " abd abddef");
 		CHECK_EQ(ReplaceTransformation("abc", "abd").apply(" abc abcdef"), " abd abddef");
 		CHECK_EQ(ReplaceTransformation("abc", "abde").apply(" abc abcdef"), " abde abdedef");
+	}
+	SUBCASE("Decorate") { CHECK_EQ(DecorateTransformation().apply("asd"), "-={ asd }=-"); }
+}
+
+TEST_CASE("Decorators") {
+	SUBCASE("LabelTransformDecorator") {
+		auto l = SimpleLabel("asd");
+		auto d = LabelTransformDecorator(l, new DecorateTransformation());
+		CHECK_EQ(d.getText(), "-={ asd }=-");
+
+		auto c = LabelTransformDecorator(l, new CapitalizeTransformation());
+		CHECK_EQ(c.getText(), "Asd");
+
+		auto e = LabelTransformDecorator(d, new CensorTransformation("asd"));
+		CHECK_EQ(e.getText(), "-={ *** }=-");
+	};
+	SUBCASE("LabelRandomTransformationDecorator") {
+		auto l = SimpleLabel("asd");
+
+		auto d = LabelRandomTransformationDecorator(l, {new DecorateTransformation(), new CapitalizeTransformation()});
+		for (std::size_t i = 0; i < 10; ++i) {
+			std::string text = d.getText();
+			CHECK((text == "-={ asd }=-" || text == "Asd"));
+		}
+
+		auto e = LabelTransformDecorator(d, new CensorTransformation("asd"));
+		for (std::size_t i = 0; i < 10; ++i) {
+			std::string text = e.getText();
+			CHECK((text == "-={ *** }=-" || text == "Asd"));
+		}
+	}
+	SUBCASE("LabelCyclingTransformationsDecorator") {
+		auto l = SimpleLabel("asd");
+		auto d =
+			LabelCyclingTransformationsDecorator(l, {new DecorateTransformation(), new CapitalizeTransformation()});
+		CHECK_EQ(d.getText(), "-={ asd }=-");
+		CHECK_EQ(d.getText(), "Asd");
+		CHECK_EQ(d.getText(), "-={ asd }=-");
+		CHECK_EQ(d.getText(), "Asd");
 	}
 }
