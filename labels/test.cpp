@@ -19,6 +19,8 @@ TEST_CASE("FlaggedPtr") {
 		CHECK_EQ(*a, 10);
 		*a = 20;
 		CHECK_EQ(*a, 20);
+
+		delete (int32_t *)a;
 	}
 	SUBCASE("int64_t") {
 		FlaggedPtr a = new uint64_t(10);
@@ -29,6 +31,8 @@ TEST_CASE("FlaggedPtr") {
 		CHECK_EQ(*a, 10);
 		*a = 20;
 		CHECK_EQ(*a, 20);
+
+		delete (uint64_t *)a;
 	}
 }
 
@@ -108,38 +112,94 @@ TEST_CASE("Transformations") {
 
 TEST_CASE("Decorators") {
 	SUBCASE("LabelTransformDecorator") {
-		auto l = SimpleLabel("asd");
-		auto d = LabelTransformDecorator(l, new DecorateTransformation());
+		auto l	= SimpleLabel("asd");
+		auto dt = DecorateTransformation();
+		auto ct = CapitalizeTransformation();
+		auto et = CensorTransformation("asd");
+
+		auto d = TransformDecorator(l, dt);
 		CHECK_EQ(d.getText(), "-={ asd }=-");
 
-		auto c = LabelTransformDecorator(l, new CapitalizeTransformation());
+		auto c = TransformDecorator(l, ct);
 		CHECK_EQ(c.getText(), "Asd");
 
-		auto e = LabelTransformDecorator(d, new CensorTransformation("asd"));
+		auto e = TransformDecorator(d, et);
 		CHECK_EQ(e.getText(), "-={ *** }=-");
 	};
 	SUBCASE("LabelRandomTransformationDecorator") {
-		auto l = SimpleLabel("asd");
+		auto l	= SimpleLabel("asd");
+		auto dt = DecorateTransformation();
+		auto ct = CapitalizeTransformation();
+		auto et = CensorTransformation("asd");
 
-		auto d = LabelRandomTransformationDecorator(l, {new DecorateTransformation(), new CapitalizeTransformation()});
+		auto d = RandomTransformationDecorator(l, {dt, ct});
 		for (std::size_t i = 0; i < 10; ++i) {
 			std::string text = d.getText();
 			CHECK((text == "-={ asd }=-" || text == "Asd"));
 		}
 
-		auto e = LabelTransformDecorator(d, new CensorTransformation("asd"));
+		auto e = TransformDecorator(d, et);
 		for (std::size_t i = 0; i < 10; ++i) {
 			std::string text = e.getText();
 			CHECK((text == "-={ *** }=-" || text == "Asd"));
 		}
 	}
 	SUBCASE("LabelCyclingTransformationsDecorator") {
-		auto l = SimpleLabel("asd");
-		auto d =
-			LabelCyclingTransformationsDecorator(l, {new DecorateTransformation(), new CapitalizeTransformation()});
+		auto l	= SimpleLabel("asd");
+		auto dt = DecorateTransformation();
+		auto ct = CapitalizeTransformation();
+		auto et = CensorTransformation("sd");
+		auto d	= CyclingTransformationsDecorator(l, {dt, ct});
 		CHECK_EQ(d.getText(), "-={ asd }=-");
 		CHECK_EQ(d.getText(), "Asd");
 		CHECK_EQ(d.getText(), "-={ asd }=-");
 		CHECK_EQ(d.getText(), "Asd");
+		auto e = TransformDecorator(d, et);
+		CHECK_EQ(e.getText(), "-={ a** }=-");
+		CHECK_EQ(e.getText(), "A**");
+	}
+}
+
+TEST_CASE("RemoveDecorator") {
+	SUBCASE("static") {
+		SimpleLabel			   l  = SimpleLabel("asd");
+		DecorateTransformation dt = DecorateTransformation();
+		DecorateTransformation ct = DecorateTransformation();
+		CensorTransformation   et = CensorTransformation("asd");
+
+		auto d = TransformDecorator(l, dt);
+		CHECK_EQ(d.getText(), "-={ asd }=-");
+		auto c = TransformDecorator(d, ct);
+		CHECK_EQ(c.getText(), "-={ -={ asd }=- }=-");
+		auto e = TransformDecorator(c, et);
+		CHECK_EQ(e.getText(), "-={ -={ *** }=- }=-");
+
+		auto &l1 = removeDecorator<TransformDecorator>(e);
+		CHECK_EQ(l1.getText(), "-={ -={ asd }=- }=-");
+	}
+	SUBCASE("dynamic") {
+		Label				*l	= new SimpleLabel("asd");
+		LabelTransformation *dt = new DecorateTransformation();
+		LabelTransformation *ct = new DecorateTransformation();
+		LabelTransformation *et = new CensorTransformation("asd");
+
+		Label *d = new TransformDecorator(*l, *dt);
+		CHECK_EQ(d->getText(), "-={ asd }=-");
+		Label *c = new TransformDecorator(*d, *ct);
+		CHECK_EQ(c->getText(), "-={ -={ asd }=- }=-");
+		Label *e = new TransformDecorator(*c, *et);
+		CHECK_EQ(e->getText(), "-={ -={ *** }=- }=-");
+
+		auto &l1 = removeDecorator<TransformDecorator>(*e);
+		CHECK_EQ(l1.getText(), "-={ -={ asd }=- }=-");
+	
+
+		delete l;
+		delete dt;
+		delete ct;
+		delete et;
+		delete d;
+		delete c;
+		delete e;
 	}
 }

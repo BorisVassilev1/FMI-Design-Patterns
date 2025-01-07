@@ -35,8 +35,8 @@ SET(COVERAGE_FLAGS
 add_executable(tests test.cpp ${FIGURES_SOURCES})
 target_compile_definitions(tests PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 set_target_properties(tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ./)
-target_compile_options(tests PRIVATE ${COVERAGE_FLAGS} -g -std=c++23)
-target_link_options(tests PRIVATE ${COVERAGE_FLAGS})
+target_compile_options(tests PRIVATE ${COVERAGE_FLAGS} -g -std=c++23 -fsanitize=address)
+target_link_options(tests PRIVATE ${COVERAGE_FLAGS} -fsanitize=address -g)
 target_include_directories(tests PUBLIC ../lib/)
 
 set(CMAKE_BUILD_TYPE Debug)
