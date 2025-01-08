@@ -20,7 +20,7 @@ file(GLOB_RECURSE FIGURES_SOURCES
 add_executable(main main.cpp ${FIGURES_SOURCES})
 set_target_properties(main PROPERTIES RUNTIME_OUTPUT_DIRECTORY ../)
 target_compile_features(main PRIVATE cxx_std_20)
-target_compile_options(main PRIVATE -fsanitize=address)
+target_compile_options(main PRIVATE -fsanitize=address -g)
 target_link_options(main PRIVATE -fsanitize=address)
 target_include_directories(main PUBLIC ../lib/)
 
