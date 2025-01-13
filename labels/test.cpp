@@ -111,10 +111,33 @@ TEST_CASE("Concat") {
 }
 
 TEST_CASE("Label Creation") {
-	SimpleLabel		   label("HELLO");
-	std::ostringstream ss;
-	LabelPrinter::print(label, ss);
-	CHECK_EQ(ss.str(), "Here is a label: HELLO");
+	SUBCASE("SimpleLabel") {
+		SimpleLabel		   label("HELLO");
+		std::ostringstream ss;
+		LabelPrinter::print(label, ss);
+		CHECK_EQ(ss.str(), "Here is a label: HELLO\n");
+	}
+	SUBCASE("ProxyLabel read once") {
+		std::istringstream iss("HELLO");
+		auto label = ProxyLabel(iss);
+		std::ostringstream oss;
+		LabelPrinter::print(label, oss);
+		CHECK_EQ(oss.str(), "Here is a label: HELLO\n");
+
+		LabelPrinter::print(label, oss);
+		CHECK_EQ(oss.str(), "Here is a label: HELLO\nHere is a label: HELLO\n");
+	}
+	SUBCASE("ProxyLabel repeat read") {
+		std::istringstream iss("HELLO THERE");
+		auto label = ProxyLabel(iss, 1);
+		std::ostringstream oss;
+		LabelPrinter::print(label, oss);
+		CHECK_EQ(oss.str(), "Here is a label: HELLO\n");
+
+		LabelPrinter::print(label, oss);
+		CHECK_EQ(oss.str(), "Here is a label: HELLO\nHere is a label: THERE\n");
+	}
+
 }
 
 TEST_CASE("Transformations") {
