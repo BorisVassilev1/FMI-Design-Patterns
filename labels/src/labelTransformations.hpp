@@ -2,12 +2,9 @@
 #include <algorithm>
 #include <cctype>
 #include <functional>
-#include <iostream>
-#include <ostream>
 #include <string>
 #include <string>
 #include "autoref.hpp"
-#include "label.hpp"
 
 class LabelTransformation {
    public:

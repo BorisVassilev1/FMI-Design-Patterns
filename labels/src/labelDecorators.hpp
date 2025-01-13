@@ -1,24 +1,22 @@
 #pragma once
 
 #include <cassert>
-#include <functional>
 #include <type_traits>
 #include "autoref.hpp"
 #include "label.hpp"
 #include "labelTransformations.hpp"
-#include "utils.hpp"
 
-class LabelDecoratorBase : public Label {
-	SmartRef<Label> l;
+class LabelDecoratorBase : public LabelImp {
+	SmartRef<LabelImp> l;
 
    public:
 	template <class Q>
 	LabelDecoratorBase(Q &&label) : l(label) {}
 
-	SmartRef<Label> &getLabel() { return l; }
+	SmartRef<LabelImp> &getLabel() { return l; }
 
 	virtual std::string getText() const override { return l->getText(); }
-	bool				operator==(const Label &) const noexcept override { return true; }
+	bool				operator==(const LabelImp &) const noexcept override { return true; }
 };
 
 class TransformDecorator : public LabelDecoratorBase {
@@ -32,7 +30,7 @@ class TransformDecorator : public LabelDecoratorBase {
 
 	std::string getText() const override { return t->apply(LabelDecoratorBase::getText()); }
 
-	bool operator==(const Label &rhs) const noexcept override {
+	bool operator==(const LabelImp &rhs) const noexcept override {
 		if (const TransformDecorator *d = static_cast<const TransformDecorator *>(&rhs)) { return t == d->t; }
 		return false;
 	}
@@ -54,7 +52,7 @@ class RandomTransformationDecorator : public LabelDecoratorBase {
 		return ts[rand() % ts.size()]->apply(LabelDecoratorBase::getText());
 	}
 
-	bool operator==(const Label &rhs) const noexcept override {
+	bool operator==(const LabelImp &rhs) const noexcept override {
 		if (const RandomTransformationDecorator *d = static_cast<const RandomTransformationDecorator *>(&rhs)) {
 			return ts == d->ts;
 		}
@@ -79,7 +77,7 @@ class CyclingTransformationsDecorator : public LabelDecoratorBase {
 		return ts[++i %= ts.size()]->apply(LabelDecoratorBase::getText());
 	}
 
-	bool operator==(const Label &rhs) const noexcept override {
+	bool operator==(const LabelImp &rhs) const noexcept override {
 		if (const CyclingTransformationsDecorator *d = static_cast<const CyclingTransformationsDecorator *>(&rhs)) {
 			return ts == d->ts;
 		}
@@ -88,11 +86,11 @@ class CyclingTransformationsDecorator : public LabelDecoratorBase {
 };
 
 template <class Decorator>
-static void removeDecorator_(SmartRef<Label> &label) {
+static void removeDecorator_(SmartRef<LabelImp> &label) {
 	if (LabelDecoratorBase *decorator = dynamic_cast<Decorator *>(&*label)) {
 		// found decorator we are looking for
-		SmartRef<Label> inside = std::move(decorator->getLabel());
-		label				   = std::move(inside);
+		SmartRef<LabelImp> inside = std::move(decorator->getLabel());
+		label					  = std::move(inside);
 	} else if (LabelDecoratorBase *decorator = dynamic_cast<LabelDecoratorBase *>(&*label)) {
 		// just a decorator
 		removeDecorator_<Decorator>(decorator->getLabel());
@@ -101,20 +99,20 @@ static void removeDecorator_(SmartRef<Label> &label) {
 
 template <class Decorator>
 	requires std::is_base_of_v<LabelDecoratorBase, Decorator>
-Label *removeDecorator(SmartRef<Label> &&label) {
-	SmartRef<Label> r = std::move(label);
+LabelImp *removeDecorator(SmartRef<LabelImp> &&label) {
+	SmartRef<LabelImp> r = std::move(label);
 	removeDecorator_<Decorator>(r);
 	r.isRef = true;
 	return &*r;
 }
 
 template <class Decorator>
-static void removeDecorator_(SmartRef<Label> &label, Decorator *decorator) {
+static void removeDecorator_(SmartRef<LabelImp> &label, Decorator *decorator) {
 	if (label->operator==(*decorator)) {
 		// found decorator we are looking for
-		Decorator	   *subject = dynamic_cast<Decorator *>(&*label);
-		SmartRef<Label> inside	= std::move(subject->getLabel());
-		label					= std::move(inside);
+		Decorator		  *subject = dynamic_cast<Decorator *>(&*label);
+		SmartRef<LabelImp> inside  = std::move(subject->getLabel());
+		label					   = std::move(inside);
 	} else if (LabelDecoratorBase *subject = dynamic_cast<LabelDecoratorBase *>(&*label)) {
 		// just a decorator
 		removeDecorator_<Decorator>(subject->getLabel(), decorator);
@@ -122,8 +120,8 @@ static void removeDecorator_(SmartRef<Label> &label, Decorator *decorator) {
 }
 
 template <class Decorator>
-Label *removeDecorator(SmartRef<Label> &&label, Decorator *decorator) {
-	SmartRef<Label> r = std::move(label);
+LabelImp *removeDecorator(SmartRef<LabelImp> &&label, Decorator *decorator) {
+	SmartRef<LabelImp> r = std::move(label);
 	removeDecorator_(r, decorator);
 	r.isRef = true;
 	return &*r;

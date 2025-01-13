@@ -2,14 +2,42 @@
 #include <cstdint>
 #include <iostream>
 #include <string>
+#include "autoref.hpp"
 
-class Label {
+class LabelImp {
    public:
 	virtual std::string getText() const = 0;
-	virtual ~Label() {}
-	virtual bool operator==(const Label &other) const = default;
+	virtual ~LabelImp() {}
+	virtual bool operator==(const LabelImp &other) const = default;
 };
-class SimpleLabel : public Label {
+
+class Label {
+public:
+	Label(SmartRef<LabelImp> &&imp) : imp(imp){}
+	
+	virtual std::string getText() const {
+		return imp->getText();
+	}
+
+	Label &operator=(SmartRef<LabelImp> &&imp) {
+		imp = std::move(imp);
+		return *this;
+	}
+
+private:
+	SmartRef<LabelImp> imp;
+};
+
+class HelpLabel : public Label {
+	std::string helpText;
+
+   public:
+	HelpLabel(SmartRef<LabelImp> &&imp, const std::string &helpText) : Label(std::move(imp)), helpText(helpText) {}
+
+	virtual std::string getHelpText() const { return helpText; }
+};
+
+class SimpleLabel : public LabelImp {
    public:
 	SimpleLabel(std::string value) : value(value) {}
 	std::string getText() const override { return value; }
@@ -22,10 +50,10 @@ struct Color {
 	std::uint8_t r, g, b;
 };
 
-class RichLabel : public SimpleLabel {
+class RichLabel : public LabelImp {
    public:
 	RichLabel(std::string &value, Color c, const std::string &font = "Arial", uint8_t size = 13)
-		: SimpleLabel(value), c(c), font(font), size(size) {}
+		: value(value), c(c), font(font), size(size) {}
 
    private:
 	std::string value;
@@ -36,11 +64,11 @@ class RichLabel : public SimpleLabel {
 	std::string getText() const override { return value; }
 };
 
-class ProxyLabel : public Label {
+class ProxyLabel : public LabelImp {
 	mutable std::string text;
 	mutable std::size_t i		= 0;
 	std::size_t			timeout = -1;
-	std::istream &in;
+	std::istream	   &in;
 
    public:
 	ProxyLabel(std::istream &in, std::size_t timeout = -1) : in(in), timeout(timeout) {}
@@ -55,9 +83,15 @@ class ProxyLabel : public Label {
 	}
 };
 
+
 class LabelPrinter {
    public:
 	static void print(const Label &label, std::ostream &out = std::cout) {
 		out << "Here is a label: " << label.getText() << std::endl;
+	}
+
+	static void printWithHelpText(const HelpLabel &label, std::ostream &out = std::cout) {
+		print(label);
+		out << "Some help information about this label: " << label.getHelpText() << std::endl;
 	}
 };

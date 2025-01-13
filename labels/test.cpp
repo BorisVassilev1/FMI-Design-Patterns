@@ -143,31 +143,31 @@ TEST_CASE("Concat") {
 	}
 }
 
-TEST_CASE("Label Creation") {
+TEST_CASE("LabelImp Creation") {
 	SUBCASE("SimpleLabel") {
 		SimpleLabel		   label("HELLO");
 		std::ostringstream ss;
-		LabelPrinter::print(label, ss);
+		LabelPrinter::print(Label(label), ss);
 		CHECK_EQ(ss.str(), "Here is a label: HELLO\n");
 	}
 	SUBCASE("ProxyLabel read once") {
 		std::istringstream iss("HELLO");
 		auto			   label = ProxyLabel(iss);
 		std::ostringstream oss;
-		LabelPrinter::print(label, oss);
+		LabelPrinter::print(Label(label), oss);
 		CHECK_EQ(oss.str(), "Here is a label: HELLO\n");
 
-		LabelPrinter::print(label, oss);
+		LabelPrinter::print(Label(label), oss);
 		CHECK_EQ(oss.str(), "Here is a label: HELLO\nHere is a label: HELLO\n");
 	}
 	SUBCASE("ProxyLabel repeat read") {
 		std::istringstream iss("HELLO THERE");
 		auto			   label = ProxyLabel(iss, 1);
 		std::ostringstream oss;
-		LabelPrinter::print(label, oss);
+		LabelPrinter::print(Label(label), oss);
 		CHECK_EQ(oss.str(), "Here is a label: HELLO\n");
 
-		LabelPrinter::print(label, oss);
+		LabelPrinter::print(Label(label), oss);
 		CHECK_EQ(oss.str(), "Here is a label: HELLO\nHere is a label: THERE\n");
 	}
 }
@@ -309,7 +309,7 @@ TEST_CASE("RemoveDecorator") {
 		}
 	}
 	SUBCASE("dynamic") {
-		Label				*l	= new SimpleLabel("asd");
+		LabelImp			*l	= new SimpleLabel("asd");
 		LabelTransformation *dt = new DecorateTransformation();
 		LabelTransformation *ct = new DecorateTransformation();
 		LabelTransformation *et = new CensorTransformation("asd");
@@ -331,7 +331,7 @@ TEST_CASE("RemoveDecorator") {
 		delete l;
 	}
 	SUBCASE("demonstration") {
-		Label *l;
+		LabelImp *l;
 		l = new SimpleLabel("abcd efgh ijkl mnop");
 		l = new TransformDecorator(l, new CensorTransformation("abcd"));
 		l = new TransformDecorator(l, new CensorTransformation("mnop"));

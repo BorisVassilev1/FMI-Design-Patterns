@@ -176,6 +176,7 @@ class SmartRef {
    public:
 	SmartRef(T &ref) : ref(&ref), isRef(true) {}
 	SmartRef(T *ref) : ref(ref), isRef(false) {}
+	SmartRef(T &&ref) : ref(new T(std::move(ref))), isRef(false) {}
 	SmartRef(const SmartRef &ref) : ref(ref.ref), isRef(true) {}
 	SmartRef(SmartRef &&ref) {
 		this->ref	= ref.ref;
@@ -208,7 +209,7 @@ class SmartRef {
 	bool operator==(const SmartRef<T> &other) const { return typeid(*ref) == typeid(*other.ref) && *ref == *other.ref; }
 
 	SmartRef &operator=(T &&ref) {
-		*this->ref = ref;
+		*this->ref = std::move(ref);
 		return *this;
 	}
 
