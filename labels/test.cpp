@@ -47,8 +47,8 @@ TEST_CASE("SmartAuto") {
 			auto b = SmartAuto(new int(40));
 			a	   = std::move(b);
 
-			int		  *ptr	= (int*)a;
-			const int *cptr = (const int*)a;
+			int		  *ptr	= (int *)a;
+			const int *cptr = (const int *)a;
 		}
 		SUBCASE("ref") {
 			int		  k = 10;
@@ -57,19 +57,20 @@ TEST_CASE("SmartAuto") {
 			CHECK_EQ(sizeof(l), 8);
 			l.operator=(5);
 			CHECK_EQ(k, 5);
-			int &ref = (int&) l;
+			int &ref = (int &)l;
 			CHECK_EQ(&ref, &k);
 
-			int v = 20;
+			int		  v = 20;
 			SmartAuto u = v;
-			l = u;
-			CHECK_EQ(&(int&)l, &v);
+			l			= u;
+			CHECK_EQ(&(int &)l, &v);
 		}
-		//SUBCASE("value") {
-		//	SmartAuto u = 1;
-		//	CHECK_EQ(type_name<decltype(u)::type>(), "int");
-		//	CHECK_EQ(sizeof(u), 4);
-		//}
+		SUBCASE("value") {
+			int k = 1;
+			// SmartAuto<int&> u = std::move(k);
+			// CHECK_EQ(type_name<decltype(u)::type>(), "int");
+			// CHECK_EQ(sizeof(u), 4);
+		}
 	}
 }
 
@@ -149,20 +150,37 @@ TEST_CASE("Transformations") {
 
 TEST_CASE("Decorators") {
 	SUBCASE("LabelTransformDecorator") {
-		auto l	= SimpleLabel("asd");
-		auto dt = DecorateTransformation();
-		auto ct = CapitalizeTransformation();
-		auto et = CensorTransformation("asd");
+		SUBCASE("Static") {
+			auto l	= SimpleLabel("asd");
+			auto dt = DecorateTransformation();
+			auto ct = CapitalizeTransformation();
+			auto et = CensorTransformation("asd");
 
-		auto d = TransformDecorator(l, dt);
-		CHECK_EQ(d.getText(), "-={ asd }=-");
+			auto d = TransformDecorator(l, dt);
+			CHECK_EQ(d.getText(), "-={ asd }=-");
 
-		auto c = TransformDecorator(l, ct);
-		CHECK_EQ(c.getText(), "Asd");
+			auto c = TransformDecorator(l, ct);
+			CHECK_EQ(c.getText(), "Asd");
 
-		auto e = TransformDecorator(d, et);
-		CHECK_EQ(e.getText(), "-={ *** }=-");
-	};
+			auto e = TransformDecorator(d, et);
+			CHECK_EQ(e.getText(), "-={ *** }=-");
+		}
+		SUBCASE("dynamic") {
+			auto l	= new SimpleLabel("asd");
+			auto dt = new DecorateTransformation();
+			auto ct = new CapitalizeTransformation();
+			auto et = new CensorTransformation("asd");
+
+			auto d = new TransformDecorator(l, dt);
+			CHECK_EQ(d->getText(), "-={ asd }=-");
+
+			auto c = TransformDecorator(*l, ct);
+			CHECK_EQ(c.getText(), "Asd");
+
+			auto e = TransformDecorator(d, et);
+			CHECK_EQ(e.getText(), "-={ *** }=-");
+		}
+	}
 	SUBCASE("LabelRandomTransformationDecorator") {
 		auto l	= SimpleLabel("asd");
 		auto dt = DecorateTransformation();
@@ -211,8 +229,8 @@ TEST_CASE("RemoveDecorator") {
 		auto e = TransformDecorator(c, et);
 		CHECK_EQ(e.getText(), "-={ -={ *** }=- }=-");
 
-		// auto &l1 = removeDecorator<TransformDecorator>(e);
-		// CHECK_EQ(l1.getText(), "-={ -={ asd }=- }=-");
+		auto *l1 = removeDecorator<TransformDecorator>(e);
+		CHECK_EQ(l1->getText(), "-={ -={ asd }=- }=-");
 	}
 	SUBCASE("dynamic") {
 		Label				*l	= new SimpleLabel("asd");
@@ -220,22 +238,23 @@ TEST_CASE("RemoveDecorator") {
 		LabelTransformation *ct = new DecorateTransformation();
 		LabelTransformation *et = new CensorTransformation("asd");
 
-		Label *d = new TransformDecorator(*l, *dt);
-		CHECK_EQ(d->getText(), "-={ asd }=-");
-		Label *c = new TransformDecorator(*d, *ct);
-		CHECK_EQ(c->getText(), "-={ -={ asd }=- }=-");
-		Label *e = new TransformDecorator(*c, *et);
-		CHECK_EQ(e->getText(), "-={ -={ *** }=- }=-");
+		l = new TransformDecorator(l, dt);
+		CHECK_EQ(l->getText(), "-={ asd }=-");
+		l = new RandomTransformationDecorator(l, {});
+		l = new TransformDecorator(l, ct);
+		CHECK_EQ(l->getText(), "-={ -={ asd }=- }=-");
+		l = new TransformDecorator(l, et);
+		CHECK_EQ(l->getText(), "-={ -={ *** }=- }=-");
 
-		// auto &l1 = removeDecorator<TransformDecorator>(*e);
-		// CHECK_EQ(l1.getText(), "-={ -={ asd }=- }=-");
+		std::cout << "-----------------------------------------------" << std::endl;
+		l = removeDecorator<TransformDecorator>(*l);
+		CHECK_EQ(l->getText(), "-={ -={ asd }=- }=-");
+		std::cout << "-----------------------------------------------" << std::endl;
+
+		l = removeDecorator<RandomTransformationDecorator>(*l);
+		CHECK_EQ(l->getText(), "-={ -={ asd }=- }=-");
+		std::cout << "-----------------------------------------------" << std::endl;
 
 		delete l;
-		delete dt;
-		delete ct;
-		delete et;
-		delete d;
-		delete c;
-		delete e;
 	}
 }
