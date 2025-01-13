@@ -146,6 +146,14 @@ TEST_CASE("Transformations") {
 		CHECK_EQ(ReplaceTransformation("abc", "abde").apply(" abc abcdef"), " abde abdedef");
 	}
 	SUBCASE("Decorate") { CHECK_EQ(DecorateTransformation().apply("asd"), "-={ asd }=-"); }
+	SUBCASE("Composite") {
+		auto cap = CapitalizeTransformation();
+		auto dec = DecorateTransformation();
+		auto rep = ReplaceTransformation("abc", "def");
+
+		CHECK_EQ(CompositeTransformation({cap, dec, rep}).apply("abc def"), "-={ Abc def }=-");
+		CHECK_EQ(CompositeTransformation({rep, cap, dec}).apply("abc def"), "-={ Def def }=-");
+	}
 }
 
 TEST_CASE("Decorators") {
@@ -274,12 +282,10 @@ TEST_CASE("RemoveDecorator") {
 		l = new TransformDecorator(l, new CensorTransformation("mnop"));
 		CHECK_EQ(l->getText(), "**** efgh ijkl ****");
 
-		std::cout << std::endl << "------------------------------------------------" << std::endl;
 		SmartRef<LabelDecoratorBase> whatToRemove = new TransformDecorator(nullptr, new CensorTransformation("abcd"));
-		l								= removeDecorator(l, &*whatToRemove);
-		std::cout << std::endl << "------------------------------------------------" << std::endl;
+		l										  = removeDecorator(l, &*whatToRemove);
 		CHECK_EQ(l->getText(), "abcd efgh ijkl ****");
-		
+
 		delete l;
 	}
 }

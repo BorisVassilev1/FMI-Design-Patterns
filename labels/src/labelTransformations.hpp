@@ -6,6 +6,7 @@
 #include <ostream>
 #include <string>
 #include <string>
+#include "autoref.hpp"
 #include "label.hpp"
 
 class LabelTransformation {
@@ -79,7 +80,7 @@ class CensorTransformation : public LabelTransformation {
 	}
 
 	bool operator==(const LabelTransformation &other) const noexcept override {
-		if(const CensorTransformation * t = dynamic_cast<const CensorTransformation*>(&other)) {
+		if (const CensorTransformation *t = dynamic_cast<const CensorTransformation *>(&other)) {
 			return word == t->word;
 		}
 		return false;
@@ -103,8 +104,29 @@ class ReplaceTransformation : public LabelTransformation {
 	}
 
 	bool operator==(const LabelTransformation &other) const noexcept override {
-		if(const ReplaceTransformation * t = dynamic_cast<const ReplaceTransformation*>(&other)) {
+		if (const ReplaceTransformation *t = dynamic_cast<const ReplaceTransformation *>(&other)) {
 			return A == t->A && B == t->B;
+		}
+		return false;
+	}
+};
+
+class CompositeTransformation : public LabelTransformation {
+	std::vector<SmartRef<LabelTransformation>> ts;
+
+   public:
+	CompositeTransformation(const std::vector<SmartRef<LabelTransformation>> &ts) : ts(ts) {};
+
+	std::string apply(std::string &&text) const override {
+		for (auto &t : ts) {
+			text = std::move(t->apply(std::move(text)));
+		}
+		return text;
+	}
+
+	bool operator==(const LabelTransformation &other) const noexcept override {
+		if (const CompositeTransformation *t = dynamic_cast<const CompositeTransformation *>(&other)) {
+			return ts == t->ts;
 		}
 		return false;
 	}

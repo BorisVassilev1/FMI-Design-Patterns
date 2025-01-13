@@ -26,9 +26,9 @@ target_include_directories(main PUBLIC ../lib/)
 
 
 SET(COVERAGE_FLAGS 
-	--coverage
-	-fprofile-arcs
-	-ftest-coverage
+	#--coverage
+	#-fprofile-arcs
+	#-ftest-coverage
 )
 
 # Make test executable
