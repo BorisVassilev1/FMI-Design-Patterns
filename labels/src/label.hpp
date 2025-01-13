@@ -7,6 +7,7 @@ class Label {
    public:
 	virtual std::string getText() const = 0;
 	virtual ~Label() {}
+	virtual bool operator ==(const Label &other) const = default;
 };
 class SimpleLabel : public Label {
    public:

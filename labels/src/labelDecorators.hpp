@@ -6,6 +6,7 @@
 #include "autoref.hpp"
 #include "label.hpp"
 #include "labelTransformations.hpp"
+#include "utils.hpp"
 
 class LabelDecoratorBase : public Label {
 	SmartRef<Label> l;
@@ -17,6 +18,7 @@ class LabelDecoratorBase : public Label {
 	SmartRef<Label> &getLabel() { return l; }
 
 	virtual std::string getText() const override { return l->getText(); }
+	bool operator == (const LabelDecoratorBase &) const { return true; }
 };
 
 class TransformDecorator : public LabelDecoratorBase {
@@ -27,6 +29,8 @@ class TransformDecorator : public LabelDecoratorBase {
 	TransformDecorator(Q &&l, R &&t) : LabelDecoratorBase(l), t(t) {}
 
 	std::string getText() const override { return t->apply(LabelDecoratorBase::getText()); }
+
+	bool operator ==(const TransformDecorator &rhs) const = default;
 };
 
 class RandomTransformationDecorator : public LabelDecoratorBase {
@@ -44,6 +48,8 @@ class RandomTransformationDecorator : public LabelDecoratorBase {
 		if (ts.empty()) return LabelDecoratorBase::getText();
 		return ts[rand() % ts.size()]->apply(LabelDecoratorBase::getText());
 	}
+
+	bool operator == (const RandomTransformationDecorator &other) const = default;
 };
 
 class CyclingTransformationsDecorator : public LabelDecoratorBase {
@@ -64,17 +70,12 @@ class CyclingTransformationsDecorator : public LabelDecoratorBase {
 	}
 };
 
+
 template <class Decorator>
-	requires std::is_base_of_v<LabelDecoratorBase, Decorator>
-void removeDecorator_(SmartRef<Label> &label) {
+static void removeDecorator_(SmartRef<Label> &label) {
 	if (LabelDecoratorBase *decorator = dynamic_cast<Decorator *>(&*label)) {
 		// found decorator we are looking for
 		SmartRef<Label> inside = std::move(decorator->getLabel());
-		if(inside.isRef) {
-			std::cout << "ok" << std::endl;
-		} else {
-			std::cout << "not ok" << std::endl;
-		}
 		label = std::move(inside);
 	} else if (LabelDecoratorBase *decorator = dynamic_cast<LabelDecoratorBase *>(&*label)) {
 		// just a decorator
@@ -84,10 +85,30 @@ void removeDecorator_(SmartRef<Label> &label) {
 
 template <class Decorator>
 	requires std::is_base_of_v<LabelDecoratorBase, Decorator>
-Label *removeDecorator(Label &label) {
-	SmartRef<Label> r = label;
-	assert(r.isRef);
+Label *removeDecorator(SmartRef<Label> &&label) {
+	SmartRef<Label> r = std::move(label);
 	removeDecorator_<Decorator>(r);
+	r.isRef = true;
+	return &*r;
+}
+
+template<class Decorator>
+static void removeDecorator_(SmartRef<Label> &label, Decorator *decorator) {
+	Decorator *subject;
+	if ((subject = dynamic_cast<Decorator *>(&*label)) && *subject == *decorator) {
+		// found decorator we are looking for
+		SmartRef<Label> inside = std::move(subject->getLabel());
+		label = std::move(inside);
+	} else if (LabelDecoratorBase *subject = dynamic_cast<LabelDecoratorBase *>(&*label)) {
+		// just a decorator
+		removeDecorator_<Decorator>(subject->getLabel(), decorator);
+	}
+}
+
+template<class Decorator>
+Label *removeDecorator(SmartRef<Label> &&label, Decorator *decorator) {
+	SmartRef<Label> r = std::move(label);
+	removeDecorator_(r, decorator);
 	r.isRef = true;
 	return &*r;
 }

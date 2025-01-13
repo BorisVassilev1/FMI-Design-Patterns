@@ -176,20 +176,22 @@ class SmartRef {
 		this->ref	= ref.ref;
 		this->isRef = ref.isRef;
 		ref.isRef	= true;
-		std::cout << "moved" << std::endl;
 	}
 
 	~SmartRef() {
-		if (!isRef) { 
-			delete ref; 
-			std::cout << "deleted" << std::endl;
-		}
+		if (!isRef) { delete ref; }
 	}
 
 	T		&operator*() { return *ref; }
 	const T &operator*() const { return *ref; }
 	T		*operator->() { return ref; }
 	const T *operator->() const { return ref; }
+
+	bool	 operator==(const SmartRef<T> &other) const {
+		std::cout << typename_demangle(typeid(*ref).name()) << " =?= " << typename_demangle(typeid(*other.ref).name())
+				  << " " << std::boolalpha << (typeid(*ref) == typeid(*other.ref)) << " " << std::boolalpha << (*ref == *other.ref) << std::endl;
+		return typeid(*ref) == typeid(*other.ref) && *ref == *other.ref;
+	}
 
 	SmartRef &operator=(T &ref) {
 		if (!isRef) { delete this->ref; }
@@ -221,6 +223,7 @@ class SmartRef {
 	}
 
 	bool isRef;
+
    private:
-	T	*ref;
+	T *ref;
 };

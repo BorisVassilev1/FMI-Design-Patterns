@@ -229,8 +229,21 @@ TEST_CASE("RemoveDecorator") {
 		auto e = TransformDecorator(c, et);
 		CHECK_EQ(e.getText(), "-={ -={ *** }=- }=-");
 
-		auto *l1 = removeDecorator<TransformDecorator>(e);
-		CHECK_EQ(l1->getText(), "-={ -={ asd }=- }=-");
+		CHECK(d == c);
+		CHECK(c != e);
+
+		SUBCASE("remove templated") {
+			auto *l1 = removeDecorator<TransformDecorator>(e);
+			CHECK_EQ(l1->getText(), "-={ -={ asd }=- }=-");
+		}
+		SUBCASE("remove by value") {
+			auto *l1 = removeDecorator<TransformDecorator>(e, &c);
+			CHECK_EQ(l1->getText(), "-={ *** }=-");
+		}
+		SUBCASE("remove by value") {
+			auto *l1 = removeDecorator(e, &e);
+			CHECK_EQ(l1->getText(), "-={ -={ asd }=- }=-");
+		}
 	}
 	SUBCASE("dynamic") {
 		Label				*l	= new SimpleLabel("asd");
@@ -246,15 +259,27 @@ TEST_CASE("RemoveDecorator") {
 		l = new TransformDecorator(l, et);
 		CHECK_EQ(l->getText(), "-={ -={ *** }=- }=-");
 
-		std::cout << "-----------------------------------------------" << std::endl;
-		l = removeDecorator<TransformDecorator>(*l);
+		l = removeDecorator<TransformDecorator>(l);
 		CHECK_EQ(l->getText(), "-={ -={ asd }=- }=-");
-		std::cout << "-----------------------------------------------" << std::endl;
 
-		l = removeDecorator<RandomTransformationDecorator>(*l);
+		l = removeDecorator<RandomTransformationDecorator>(l);
 		CHECK_EQ(l->getText(), "-={ -={ asd }=- }=-");
-		std::cout << "-----------------------------------------------" << std::endl;
 
+		delete l;
+	}
+	SUBCASE("demonstration") {
+		Label *l;
+		l = new SimpleLabel("abcd efgh ijkl mnop");
+		l = new TransformDecorator(l, new CensorTransformation("abcd"));
+		l = new TransformDecorator(l, new CensorTransformation("mnop"));
+		CHECK_EQ(l->getText(), "**** efgh ijkl ****");
+
+		std::cout << std::endl << "------------------------------------------------" << std::endl;
+		SmartRef<TransformDecorator> whatToRemove = new TransformDecorator(nullptr, new CensorTransformation("abcd"));
+		l								= removeDecorator(l, &*whatToRemove);
+		std::cout << std::endl << "------------------------------------------------" << std::endl;
+		CHECK_EQ(l->getText(), "abcd efgh ijkl ****");
+		
 		delete l;
 	}
 }
