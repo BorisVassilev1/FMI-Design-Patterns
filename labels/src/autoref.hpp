@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstring>
 #include <iostream>
 #include <ostream>
 #include <type_traits>
@@ -166,6 +167,10 @@ SmartAuto(Q *&value) -> SmartAuto<Q *>;
 template <class Q>
 SmartAuto(Q &value) -> SmartAuto<Q &>;
 
+class Cloneable {
+	virtual Cloneable *clone() const = 0;
+};
+
 template <class T>
 class SmartRef {
    public:
@@ -177,6 +182,13 @@ class SmartRef {
 		this->isRef = ref.isRef;
 		ref.isRef	= true;
 	}
+	SmartRef(T &&ref)
+		requires(!std::is_abstract_v<T>)
+		: ref(new T(std::move(ref))), isRef(false) {}
+
+	SmartRef(T &&ref)
+		requires(std::is_abstract_v<T> && std::is_base_of_v<Cloneable, T>)
+		: ref(ref.clone()), isRef(false) {}
 
 	~SmartRef() {
 		if (!isRef) { delete ref; }
@@ -186,15 +198,22 @@ class SmartRef {
 	const T &operator*() const { return *ref; }
 	T		*operator->() { return ref; }
 	const T *operator->() const { return ref; }
+	T		*operator&() { return ref; }
+	const T *operator&() const { return ref; }
+	operator T *() { return ref; }
+	operator const T *() const { return ref; }
+	operator T &() { return *ref; }
+	operator const T &() const { return *ref; }
 
-	bool	 operator==(const SmartRef<T> &other) const {
-		return typeid(*ref) == typeid(*other.ref) && *ref == *other.ref;
+	bool operator==(const SmartRef<T> &other) const { return typeid(*ref) == typeid(*other.ref) && *ref == *other.ref; }
+
+	SmartRef &operator=(T &&ref) {
+		*this->ref = ref;
+		return *this;
 	}
 
 	SmartRef &operator=(T &ref) {
-		if (!isRef) { delete this->ref; }
-		this->ref = &ref;
-		isRef	  = true;
+		*this->ref = ref;
 		return *this;
 	}
 
@@ -213,6 +232,7 @@ class SmartRef {
 	}
 
 	SmartRef &operator=(SmartRef &&ref) {
+		if constexpr (std::is_same_v<int, T>) std::cout << "move" << *this->ref << " " << *ref.ref << std::endl;
 		if (!isRef) { delete this->ref; }
 		this->ref = ref.ref;
 		isRef	  = ref.isRef;

@@ -74,6 +74,39 @@ TEST_CASE("SmartAuto") {
 	}
 }
 
+TEST_CASE("SmartRef") {
+	SUBCASE("ptr") {
+		SmartRef a = new int(5);
+		a		   = new int(10);
+		SmartRef b = new int(40);
+		a		   = std::move(b);
+		CHECK_EQ(*b, 40);
+		CHECK_EQ(*a, 40);
+
+		int		  *ptr	= (int *)a;
+		const int *cptr = (const int *)a;
+	}
+	SUBCASE("ref") {
+		int		 k = 10;
+		SmartRef l = k;
+		l.operator=(5);
+		CHECK_EQ(k, 5);
+		int &ref = (int &)l;
+		CHECK_EQ(&ref, &k);
+
+		int		 v = 20;
+		SmartRef u = v;
+		l		   = u;
+		CHECK_EQ(&(int &)l, &v);
+	}
+	SUBCASE("value") {
+		int			  k = 1;
+		SmartRef<int> u = std::move(k);
+		k				= 2;
+		CHECK_EQ(*u, 1);
+	}
+}
+
 TEST_CASE("Concat") {
 	SUBCASE("two containers") {
 		std::vector<int> v1 = {1, 2, 3};
@@ -119,7 +152,7 @@ TEST_CASE("Label Creation") {
 	}
 	SUBCASE("ProxyLabel read once") {
 		std::istringstream iss("HELLO");
-		auto label = ProxyLabel(iss);
+		auto			   label = ProxyLabel(iss);
 		std::ostringstream oss;
 		LabelPrinter::print(label, oss);
 		CHECK_EQ(oss.str(), "Here is a label: HELLO\n");
@@ -129,7 +162,7 @@ TEST_CASE("Label Creation") {
 	}
 	SUBCASE("ProxyLabel repeat read") {
 		std::istringstream iss("HELLO THERE");
-		auto label = ProxyLabel(iss, 1);
+		auto			   label = ProxyLabel(iss, 1);
 		std::ostringstream oss;
 		LabelPrinter::print(label, oss);
 		CHECK_EQ(oss.str(), "Here is a label: HELLO\n");
@@ -137,7 +170,6 @@ TEST_CASE("Label Creation") {
 		LabelPrinter::print(label, oss);
 		CHECK_EQ(oss.str(), "Here is a label: HELLO\nHere is a label: THERE\n");
 	}
-
 }
 
 TEST_CASE("Transformations") {

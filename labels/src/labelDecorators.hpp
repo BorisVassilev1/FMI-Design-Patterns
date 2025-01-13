@@ -26,7 +26,9 @@ class TransformDecorator : public LabelDecoratorBase {
 
    public:
 	template <class Q, class R>
-	TransformDecorator(Q &&l, R &&t) : LabelDecoratorBase(l), t(t) {}
+	TransformDecorator(Q &&l, R &t) : LabelDecoratorBase(l), t(t) {}
+	template <class Q, class R>
+	TransformDecorator(Q &&l, R &&t) : LabelDecoratorBase(l), t(std::move(t)) {}
 
 	std::string getText() const override { return t->apply(LabelDecoratorBase::getText()); }
 
@@ -41,7 +43,7 @@ class RandomTransformationDecorator : public LabelDecoratorBase {
 
    public:
 	template <class Q>
-	RandomTransformationDecorator(Q &&l, const std::vector<std::reference_wrapper<LabelTransformation>> &v)
+	RandomTransformationDecorator(Q &&l, const std::vector<SmartRef<LabelTransformation>> &v)
 		: LabelDecoratorBase(l), ts() {
 		for (auto lt : v)
 			ts.emplace_back(lt);

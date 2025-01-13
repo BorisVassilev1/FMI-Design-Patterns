@@ -41,3 +41,8 @@ inline auto typename_demangle(const char *n) {
 	std::string								r = own != nullptr ? own.get() : n;
 	return r;
 }
+
+template<class T>
+inline auto  type_name(T *v) {
+	return typename_demangle(typeid(v).name());
+}
