@@ -176,7 +176,6 @@ class SmartRef {
    public:
 	SmartRef(T &ref) : ref(&ref), isRef(true) {}
 	SmartRef(T *ref) : ref(ref), isRef(false) {}
-	SmartRef(T &&ref) : ref(new T(std::move(ref))), isRef(false) {}
 	SmartRef(const SmartRef &ref) : ref(ref.ref), isRef(true) {}
 	SmartRef(SmartRef &&ref) {
 		this->ref	= ref.ref;
@@ -226,6 +225,7 @@ class SmartRef {
 	}
 
 	SmartRef &operator=(SmartRef &ref) {
+		if(&ref == this->ref) return *this;
 		if (!isRef) { delete this->ref; }
 		this->ref = ref.ref;
 		isRef	  = true;
@@ -233,7 +233,7 @@ class SmartRef {
 	}
 
 	SmartRef &operator=(SmartRef &&ref) {
-		if constexpr (std::is_same_v<int, T>) std::cout << "move" << *this->ref << " " << *ref.ref << std::endl;
+		if(&ref == this->ref) return *this;
 		if (!isRef) { delete this->ref; }
 		this->ref = ref.ref;
 		isRef	  = ref.isRef;

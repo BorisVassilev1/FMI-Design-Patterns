@@ -13,16 +13,27 @@ class LabelImp {
 
 class Label {
 public:
-	Label(SmartRef<LabelImp> &&imp) : imp(imp){}
+	Label(SmartRef<LabelImp> &&imp) : imp(std::move(imp)){}
 	
 	virtual std::string getText() const {
 		return imp->getText();
 	}
 
 	Label &operator=(SmartRef<LabelImp> &&imp) {
-		imp = std::move(imp);
+		this->imp = std::move(imp);
 		return *this;
 	}
+
+	template<class Decorator, class ... Args>
+	Label& addDecorator(Args&& ... args) {
+		Decorator* d = new Decorator(&imp, std::forward<Args>(args)...);
+		SmartRef<LabelImp> l = std::move(imp);
+		this->imp = d;
+		l.isRef = true;
+		return *this;
+	}
+
+	SmartRef<LabelImp> &getImp() { return imp; }
 
 private:
 	SmartRef<LabelImp> imp;
@@ -52,7 +63,7 @@ struct Color {
 
 class RichLabel : public LabelImp {
    public:
-	RichLabel(std::string &value, Color c, const std::string &font = "Arial", uint8_t size = 13)
+	RichLabel(const std::string &value, Color c, const std::string &font = "Arial", uint8_t size = 13)
 		: value(value), c(c), font(font), size(size) {}
 
    private:
@@ -82,7 +93,6 @@ class ProxyLabel : public LabelImp {
 		return text;
 	}
 };
-
 
 class LabelPrinter {
    public:

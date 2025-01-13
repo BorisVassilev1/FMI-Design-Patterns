@@ -292,20 +292,25 @@ TEST_CASE("RemoveDecorator") {
 		auto e = TransformDecorator(c, et);
 		CHECK_EQ(e.getText(), "-={ -={ *** }=- }=-");
 
+		Label label(e);
 		CHECK(d == c);
 		CHECK(c != e);
 
 		SUBCASE("remove templated") {
-			auto *l1 = removeDecorator<TransformDecorator>(e);
-			CHECK_EQ(l1->getText(), "-={ -={ asd }=- }=-");
+			removeDecorator<TransformDecorator>(label);
+			CHECK_EQ(label.getText(), "-={ -={ asd }=- }=-");
 		}
 		SUBCASE("remove by value") {
-			auto *l1 = removeDecorator<TransformDecorator>(e, &c);
-			CHECK_EQ(l1->getText(), "-={ *** }=-");
+			removeDecorator(label, &c);
+			CHECK_EQ(label.getText(), "-={ *** }=-");
 		}
 		SUBCASE("remove by value") {
-			auto *l1 = removeDecorator(e, &e);
-			CHECK_EQ(l1->getText(), "-={ -={ asd }=- }=-");
+			removeDecorator(label, &e);
+			CHECK_EQ(label.getText(), "-={ -={ asd }=- }=-");
+		}
+		SUBCASE("remove by type") {
+			removeDecoratorByType(label, &c);
+			CHECK_EQ(label.getText(), "-={ -={ asd }=- }=-");
 		}
 	}
 	SUBCASE("dynamic") {
@@ -316,31 +321,64 @@ TEST_CASE("RemoveDecorator") {
 
 		l = new TransformDecorator(l, dt);
 		CHECK_EQ(l->getText(), "-={ asd }=-");
-		l = new RandomTransformationDecorator(l, {});
+		l = new RandomTransformationDecorator(l, {*dt});
 		l = new TransformDecorator(l, ct);
-		CHECK_EQ(l->getText(), "-={ -={ asd }=- }=-");
+		CHECK_EQ(l->getText(), "-={ -={ -={ asd }=- }=- }=-");
 		l = new TransformDecorator(l, et);
-		CHECK_EQ(l->getText(), "-={ -={ *** }=- }=-");
+		CHECK_EQ(l->getText(), "-={ -={ -={ *** }=- }=- }=-");
 
-		l = removeDecorator<TransformDecorator>(l);
-		CHECK_EQ(l->getText(), "-={ -={ asd }=- }=-");
+		Label label(l);
 
-		l = removeDecorator<RandomTransformationDecorator>(l);
-		CHECK_EQ(l->getText(), "-={ -={ asd }=- }=-");
+		SUBCASE("remove templated") {
+			removeDecorator<TransformDecorator>(label);
+			CHECK_EQ(label.getText(), "-={ -={ -={ asd }=- }=- }=-");
 
-		delete l;
+			removeDecorator<RandomTransformationDecorator>(label);
+			CHECK_EQ(label.getText(), "-={ -={ asd }=- }=-");
+		}
+		SUBCASE("remove by type") {
+			SmartRef toRemove = new RandomTransformationDecorator(nullptr, {});
+			removeDecoratorByType(label, &toRemove);
+			CHECK_EQ(label.getText(), "-={ -={ *** }=- }=-");
+		}
 	}
 	SUBCASE("demonstration") {
-		LabelImp *l;
-		l = new SimpleLabel("abcd efgh ijkl mnop");
-		l = new TransformDecorator(l, new CensorTransformation("abcd"));
-		l = new TransformDecorator(l, new CensorTransformation("mnop"));
-		CHECK_EQ(l->getText(), "**** efgh ijkl ****");
+		Label l(new SimpleLabel("abcd efgh ijkl mnop"));
+		l.addDecorator<TransformDecorator>(new CensorTransformation("abcd"));
+		l.addDecorator<TransformDecorator>(new CensorTransformation("mnop"));
+		CHECK_EQ(l.getText(), "**** efgh ijkl ****");
 
 		SmartRef<LabelDecoratorBase> whatToRemove = new TransformDecorator(nullptr, new CensorTransformation("abcd"));
-		l										  = removeDecorator(l, &*whatToRemove);
-		CHECK_EQ(l->getText(), "abcd efgh ijkl ****");
+		removeDecorator(l, &*whatToRemove);
+		CHECK_EQ(l.getText(), "abcd efgh ijkl ****");
+	}
+	SUBCASE("demonstration no template") {
+		Label l(new SimpleLabel("abcd efgh ijkl mnop"));
+		l = new TransformDecorator(std::move(l.getImp()), new CensorTransformation("abcd"));
+		l = new TransformDecorator(std::move(l.getImp()), new CensorTransformation("mnop"));
+		CHECK_EQ(l.getText(), "**** efgh ijkl ****");
 
-		delete l;
+		SmartRef<LabelDecoratorBase> whatToRemove = new TransformDecorator(nullptr, new CensorTransformation("abcd"));
+		removeDecorator(l, &*whatToRemove);
+		CHECK_EQ(l.getText(), "abcd efgh ijkl ****");
+	}
+}
+
+TEST_CASE("Label") {
+	SUBCASE("SimpleLabel") {
+		SimpleLabel l("asd");
+		Label	   label(l);
+		CHECK_EQ(label.getText(), "asd");
+	}
+	SUBCASE("HelpLabel") {
+		HelpLabel l(new SimpleLabel("asd"), "help");
+		CHECK_EQ(l.getText(), "asd");
+		CHECK_EQ(l.getHelpText(), "help");
+	}
+	SUBCASE("RichLabel") {
+		RichLabel l("asd", Color{1, 2, 3}, "Arial", 10);
+		HelpLabel	 label(l, "some helpful text");
+		CHECK_EQ(label.getText(), "asd");
+		CHECK_EQ(label.getHelpText(), "some helpful text");
 	}
 }

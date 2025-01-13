@@ -1,8 +1,5 @@
 #pragma once
-#include <bitset>
 #include <cstdint>
-#include <iostream>
-#include <ostream>
 
 static constexpr int log2(const int x) {
 	int res = 0;
