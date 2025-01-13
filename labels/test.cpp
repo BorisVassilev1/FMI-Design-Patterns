@@ -275,7 +275,7 @@ TEST_CASE("RemoveDecorator") {
 		CHECK_EQ(l->getText(), "**** efgh ijkl ****");
 
 		std::cout << std::endl << "------------------------------------------------" << std::endl;
-		SmartRef<TransformDecorator> whatToRemove = new TransformDecorator(nullptr, new CensorTransformation("abcd"));
+		SmartRef<LabelDecoratorBase> whatToRemove = new TransformDecorator(nullptr, new CensorTransformation("abcd"));
 		l								= removeDecorator(l, &*whatToRemove);
 		std::cout << std::endl << "------------------------------------------------" << std::endl;
 		CHECK_EQ(l->getText(), "abcd efgh ijkl ****");
