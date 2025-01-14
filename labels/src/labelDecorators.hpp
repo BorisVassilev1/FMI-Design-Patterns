@@ -38,10 +38,8 @@ class RandomTransformationDecorator : public LabelDecoratorBase {
 	std::vector<SmartRef<LabelTransformation>> ts;
 
    public:
-	RandomTransformationDecorator(SmartRef<LabelImp> &&l, const std::vector<SmartRef<LabelTransformation>> &v)
-		: LabelDecoratorBase(std::move(l)), ts() {
-		for (auto lt : v)
-			ts.emplace_back(lt);
+	RandomTransformationDecorator(SmartRef<LabelImp> &&l, std::vector<SmartRef<LabelTransformation>> &&v)
+		: LabelDecoratorBase(std::move(l)), ts(std::move(v)) {
 	}
 
 	std::string getText() const override {
@@ -62,7 +60,7 @@ class CyclingTransformationsDecorator : public LabelDecoratorBase {
 	mutable std::size_t						   i = 0;
 
    public:
-	CyclingTransformationsDecorator(SmartRef<LabelImp> &&l, const std::vector<SmartRef<LabelTransformation>> &v)
+	CyclingTransformationsDecorator(SmartRef<LabelImp> &&l, std::vector<SmartRef<LabelTransformation>> &&v)
 		: LabelDecoratorBase(std::move(l)), ts(), i(ts.size() - 1) {
 		for (auto lt : v)
 			ts.emplace_back(lt);
@@ -79,6 +77,44 @@ class CyclingTransformationsDecorator : public LabelDecoratorBase {
 		}
 		return false;
 	}
+};
+
+class LabelBuilder {
+	SmartRef<LabelImp> imp;
+	std::vector<SmartRef<LabelDecoratorBase>> decorators;
+	SmartRef<Label> label;
+	
+   public:
+	LabelBuilder() : imp(nullptr), label(Label(nullptr)) {}
+
+	void setImp(SmartRef<LabelImp> &&imp) {
+		this->imp = std::move(imp);
+	}
+	
+	template <class Decorator, class... Args>
+	LabelBuilder &addDecorator(Args &&... args) {
+		decorators.emplace_back(new Decorator(nullptr, std::forward<Args>(args)...));
+		return *this;
+	}
+
+	void setLabel(SmartRef<Label> &&label) {
+		this->label = std::move(label);
+	}
+
+	SmartRef<Label> build() {
+		if(&imp == nullptr) {
+			throw std::runtime_error("LabelBuilder: imp is not set");
+		}
+
+		for (auto &d : decorators) {
+			d->getLabel() = std::move(imp);
+			imp = std::move(d);
+			assert(d.isRef);
+		}
+		label->getImp() = std::move(imp);
+		return std::move(label);
+	}
+
 };
 
 template <class Decorator>

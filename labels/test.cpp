@@ -1,4 +1,5 @@
 #include <cassert>
+#include <ostream>
 #include <sstream>
 #include "src/concat.hpp"
 #include "src/flaggedptr.hpp"
@@ -82,6 +83,8 @@ TEST_CASE("SmartRef") {
 		a		   = std::move(b);
 		CHECK_EQ(*b, 40);
 		CHECK_EQ(*a, 40);
+		CHECK_EQ(a.isRef, false);
+		CHECK_EQ(b.isRef, true);
 
 		int		  *ptr	= (int *)a;
 		const int *cptr = (const int *)a;
@@ -104,6 +107,36 @@ TEST_CASE("SmartRef") {
 		SmartRef<int> u = std::move(k);
 		k				= 2;
 		CHECK_EQ(*u, 1);
+	}
+	SUBCASE("Vector") {
+		int						   a = 1, b = 2, c = 3;
+		std::vector<SmartRef<int>> v = {a, b, c};
+		CHECK_EQ(*v[0], 1);
+		CHECK_EQ(*v[1], 2);
+		CHECK_EQ(*v[2], 3);
+		auto u = std::move(v);
+		CHECK_EQ(*u[0], 1);
+		CHECK_EQ(*u[1], 2);
+		CHECK_EQ(*u[2], 3);
+	}
+	SUBCASE("Vector") {
+		std::vector<SmartRef<int>> v;
+		v.emplace_back(new int(1));
+		CHECK_EQ(v[0].isRef, false);
+		CHECK_EQ(*v[0], 1);
+		v.emplace_back(new int(2));
+		CHECK_EQ(v[0].isRef, false);
+		CHECK_EQ(v[1].isRef, false);
+		CHECK_EQ(*v[0], 1);
+		CHECK_EQ(*v[1], 2);
+		v.emplace_back(new int(3));
+		CHECK_EQ(v[0].isRef, false);
+		CHECK_EQ(v[1].isRef, false);
+		CHECK_EQ(v[2].isRef, false);
+		CHECK_EQ(*v[0], 1);
+		CHECK_EQ(*v[1], 2);
+		CHECK_EQ(*v[2], 3);
+		auto u = std::move(v);
 	}
 }
 
@@ -367,7 +400,7 @@ TEST_CASE("RemoveDecorator") {
 TEST_CASE("Label") {
 	SUBCASE("SimpleLabel") {
 		SimpleLabel l("asd");
-		Label	   label(l);
+		Label		label(l);
 		CHECK_EQ(label.getText(), "asd");
 	}
 	SUBCASE("HelpLabel") {
@@ -377,8 +410,56 @@ TEST_CASE("Label") {
 	}
 	SUBCASE("RichLabel") {
 		RichLabel l("asd", Color{1, 2, 3}, "Arial", 10);
-		HelpLabel	 label(l, "some helpful text");
+		HelpLabel label(l, "some helpful text");
 		CHECK_EQ(label.getText(), "asd");
 		CHECK_EQ(label.getHelpText(), "some helpful text");
 	}
 }
+
+TEST_CASE("LabelBuilder") {
+	LabelBuilder b;
+	SUBCASE("no imp") { CHECK_THROWS_AS(b.build(), std::runtime_error); }
+	SUBCASE("no label") {
+		b.setImp(new SimpleLabel("asd"));
+		auto label = b.build();
+		CHECK_EQ(label->getText(), "asd");
+	}
+	SUBCASE("with label") {
+		b.setImp(new SimpleLabel("asd"));
+		b.setLabel(Label(nullptr));
+		auto label = b.build();
+		CHECK_EQ(label->getText(), "asd");
+	}
+	SUBCASE("with decorators") {
+		b.setImp(new SimpleLabel("asd"));
+		b.addDecorator<TransformDecorator>(new CapitalizeTransformation());
+		b.addDecorator<TransformDecorator>(new DecorateTransformation());
+		b.addDecorator<TransformDecorator>(new CensorTransformation("sd"));
+		auto label = b.build();
+		CHECK_EQ(label->getText(), "-={ A** }=-");
+	}
+}
+
+TEST_CASE("CensorTransformationFactory") {
+	CensorTransformationFactory f;
+	SUBCASE("basic") {
+		SmartRef<LabelTransformation> t = f.create("abc");
+		CHECK_EQ(t->apply("abc def abcdef"), "*** def ***def");
+		CHECK_EQ(t->apply("aba def ababa"), "aba def ababa");
+
+		SmartRef<LabelTransformation> t2 = new CensorTransformation("abc");
+		CHECK_EQ(*t, *t2);
+		CHECK_EQ(t, t2);
+	}
+
+	SUBCASE("check comparision") {
+		Label l(new SimpleLabel("abcd efgh ijkl mnop"));
+		l = new TransformDecorator(std::move(l.getImp()), f.create("abcd"));
+		l = new TransformDecorator(std::move(l.getImp()), f.create("mnop"));
+		CHECK_EQ(l.getText(), "**** efgh ijkl ****");
+
+		SmartRef<LabelDecoratorBase> whatToRemove = new TransformDecorator(nullptr, new CensorTransformation("abcd"));
+		removeDecorator(l, &*whatToRemove);
+		CHECK_EQ(l.getText(), "abcd efgh ijkl ****");
+	}
+};

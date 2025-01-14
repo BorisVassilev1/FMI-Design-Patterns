@@ -12,30 +12,25 @@ class LabelImp {
 };
 
 class Label {
-public:
-	Label(SmartRef<LabelImp> &&imp) : imp(std::move(imp)){}
-	
-	virtual std::string getText() const {
-		return imp->getText();
-	}
+   public:
+	Label(SmartRef<LabelImp> &&imp) : imp(std::move(imp)) {}
+
+	virtual std::string getText() const { return imp->getText(); }
 
 	Label &operator=(SmartRef<LabelImp> &&imp) {
 		this->imp = std::move(imp);
 		return *this;
 	}
 
-	template<class Decorator, class ... Args>
-	Label& addDecorator(Args&& ... args) {
-		Decorator* d = new Decorator(&imp, std::forward<Args>(args)...);
-		SmartRef<LabelImp> l = std::move(imp);
-		this->imp = d;
-		l.isRef = true;
+	template <class Decorator, class... Args>
+	Label &addDecorator(Args &&...args) {
+		this->imp = new Decorator(std::move(this->imp), std::forward<Args>(args)...);
 		return *this;
 	}
 
 	SmartRef<LabelImp> &getImp() { return imp; }
 
-private:
+   private:
 	SmartRef<LabelImp> imp;
 };
 
@@ -46,12 +41,18 @@ class HelpLabel : public Label {
 	HelpLabel(SmartRef<LabelImp> &&imp, const std::string &helpText) : Label(std::move(imp)), helpText(helpText) {}
 
 	virtual std::string getHelpText() const { return helpText; }
+
 };
 
 class SimpleLabel : public LabelImp {
    public:
 	SimpleLabel(std::string value) : value(value) {}
-	std::string getText() const override { return value; }
+	std::string	 getText() const override { return value; }
+
+	virtual bool operator==(const LabelImp &other) const noexcept override {
+		if (const SimpleLabel *l = dynamic_cast<const SimpleLabel *>(&other)) { return value == l->value; }
+		return false;
+	}
 
    private:
 	std::string value;
@@ -65,6 +66,11 @@ class RichLabel : public LabelImp {
    public:
 	RichLabel(const std::string &value, Color c, const std::string &font = "Arial", uint8_t size = 13)
 		: value(value), c(c), font(font), size(size) {}
+
+	virtual bool operator==(const LabelImp &other) const noexcept override {
+		if (const RichLabel *l = dynamic_cast<const RichLabel *>(&other)) { return value == l->value; }
+		return false;
+	}
 
    private:
 	std::string value;
@@ -91,6 +97,11 @@ class ProxyLabel : public LabelImp {
 		}
 		--i;
 		return text;
+	}
+
+	virtual bool operator==(const LabelImp &other) const noexcept override {
+		if (const ProxyLabel *l = dynamic_cast<const ProxyLabel *>(&other)) { return timeout == l->timeout; }
+		return false;
 	}
 };
 

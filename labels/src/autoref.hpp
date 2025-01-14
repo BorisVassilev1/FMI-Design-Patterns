@@ -4,8 +4,8 @@
 #include <iostream>
 #include <ostream>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
-#include "utils.hpp"
 
 namespace std {
 // clang-format off
@@ -173,14 +173,14 @@ class Cloneable {
 
 template <class T>
 class SmartRef {
+	SmartRef(T *ref, bool isRef) : ref(ref), isRef(isRef) {}
    public:
 	SmartRef(T &ref) : ref(&ref), isRef(true) {}
 	SmartRef(T *ref) : ref(ref), isRef(false) {}
 	SmartRef(const SmartRef &ref) : ref(ref.ref), isRef(true) {}
-	SmartRef(SmartRef &&ref) {
-		this->ref	= ref.ref;
-		this->isRef = ref.isRef;
-		ref.isRef	= true;
+	SmartRef(SmartRef &&ref) noexcept : isRef(true) {
+		this->ref = ref.ref;
+		std::swap(isRef, ref.isRef);
 	}
 	SmartRef(T &&ref)
 		requires(!std::is_abstract_v<T>)
@@ -200,12 +200,18 @@ class SmartRef {
 	const T *operator->() const { return ref; }
 	T		*operator&() { return ref; }
 	const T *operator&() const { return ref; }
-	operator T *() { return ref; }
-	operator const T *() const { return ref; }
-	operator T &() { return *ref; }
-	operator const T &() const { return *ref; }
+	explicit operator T *() { return ref; }
+	explicit operator const T *() const { return ref; }
+	explicit operator T &() { return *ref; }
+	explicit operator const T &() const { return *ref; }
+	template <class U>
+	operator SmartRef<U>() && {
+		auto ret = SmartRef<U>((U *)ref, isRef);
+		isRef	 = true;
+		return ret;
+	}
 
-	bool operator==(const SmartRef<T> &other) const { return typeid(*ref) == typeid(*other.ref) && *ref == *other.ref; }
+	bool operator==(const SmartRef<T> &other) const { return *ref == *other.ref; }
 
 	SmartRef &operator=(T &&ref) {
 		*this->ref = std::move(ref);
@@ -225,7 +231,7 @@ class SmartRef {
 	}
 
 	SmartRef &operator=(SmartRef &ref) {
-		if(&ref == this->ref) return *this;
+		if (&ref == this->ref) return *this;
 		if (!isRef) { delete this->ref; }
 		this->ref = ref.ref;
 		isRef	  = true;
@@ -233,7 +239,7 @@ class SmartRef {
 	}
 
 	SmartRef &operator=(SmartRef &&ref) {
-		if(&ref == this->ref) return *this;
+		if (&ref == this->ref) return *this;
 		if (!isRef) { delete this->ref; }
 		this->ref = ref.ref;
 		isRef	  = ref.isRef;
@@ -242,6 +248,9 @@ class SmartRef {
 	}
 
 	bool isRef;
+
+	template<class U>
+	friend class SmartRef;
 
    private:
 	T *ref;

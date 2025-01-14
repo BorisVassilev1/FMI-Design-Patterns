@@ -1,7 +1,6 @@
 #pragma once
 
 #include <algorithm>
-#include <functional>
 #include <utility>
 #include "autoref.hpp"
 #include "flaggedptr.hpp"
@@ -20,7 +19,9 @@ class Concat {
 	auto begin() { return Iterator<decltype(rng1->begin()), decltype(rng2->begin())>(rng1->begin(), this, 0); }
 	auto end() { return Iterator<decltype(rng1->begin()), decltype(rng2->begin())>(rng2->end(), this, 1); }
 
-	auto begin() const { return ConstIterator<decltype(rng1->begin()), decltype(rng2->begin())>(rng1->begin(), this, 0); }
+	auto begin() const {
+		return ConstIterator<decltype(rng1->begin()), decltype(rng2->begin())>(rng1->begin(), this, 0);
+	}
 	auto end() const { return ConstIterator<decltype(rng1->begin()), decltype(rng2->begin())>(rng2->end(), this, 1); }
 
 	template <class It1, class It2>
@@ -31,8 +32,7 @@ class Concat {
 		};
 		FlaggedPtr<Concat<T, U>> container;
 
-		Iterator(It1 &&it1, Concat<T, U> *container, int flag = 0) 
-		: it1(std::move(it1)), container(container) {
+		Iterator(It1 &&it1, Concat<T, U> *container, int flag = 0) : it1(std::move(it1)), container(container) {
 			this->container.setFlags(flag);
 		}
 		Iterator(It2 &&it2, Concat<T, U> *container, int flag = 1)
@@ -83,9 +83,8 @@ class Concat {
 	};
 
 	template <class It1, class It2>
-	class ConstIterator : public Iterator<It1, It2>{
-		
-		inline auto operator*() = delete;
+	class ConstIterator : public Iterator<It1, It2> {
+		inline auto		  operator*() = delete;
 		inline const auto operator*() const { return this->container.getFlags() ? *this->it2 : *this->it1; }
 	};
 };

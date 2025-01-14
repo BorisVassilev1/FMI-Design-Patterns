@@ -43,6 +43,6 @@ inline auto typename_demangle(const char *n) {
 }
 
 template<class T>
-inline auto  type_name(T *v) {
+inline auto  type_name(T &v) {
 	return typename_demangle(typeid(v).name());
 }

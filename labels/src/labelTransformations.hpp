@@ -4,7 +4,10 @@
 #include <functional>
 #include <string>
 #include <string>
+#include <unordered_set>
 #include "autoref.hpp"
+#include "label.hpp"
+#include "utils.hpp"
 
 class LabelTransformation {
    public:
@@ -59,14 +62,13 @@ class DecorateTransformation : public LabelTransformation {
 	}
 };
 
-class CensorTransformation : public LabelTransformation {
-	std::string word;
-
+class CensorTransformationBase : public LabelTransformation {
    public:
-	template <class stringType>
-	CensorTransformation(stringType &&word) : word(word) {}
+	virtual std::string_view getWord() const = 0;
 
 	std::string apply(std::string &&text) const override {
+		std::string_view word = getWord();
+
 		std::size_t curr = 0, next = text.find(word, curr);
 		while ((curr = next) != std::string::npos) {
 			next = text.find(word, curr + 1);
@@ -77,10 +79,22 @@ class CensorTransformation : public LabelTransformation {
 	}
 
 	bool operator==(const LabelTransformation &other) const noexcept override {
-		if (const CensorTransformation *t = dynamic_cast<const CensorTransformation *>(&other)) {
-			return word == t->word;
+		if (const CensorTransformationBase *t = dynamic_cast<const CensorTransformationBase *>(&other)) {
+			return this->getWord() == t->getWord();
 		}
 		return false;
+	}
+};
+
+class CensorTransformation : public CensorTransformationBase {
+	std::string word;
+
+   public:
+	template <class stringType>
+	CensorTransformation(stringType &&word) : word(word) {}
+
+	std::string_view getWord() const noexcept override {
+		return word;
 	}
 };
 
@@ -112,7 +126,7 @@ class CompositeTransformation : public LabelTransformation {
 	std::vector<SmartRef<LabelTransformation>> ts;
 
    public:
-	CompositeTransformation(const std::vector<SmartRef<LabelTransformation>> &ts) : ts(ts) {};
+	CompositeTransformation(std::vector<SmartRef<LabelTransformation>> &&ts) : ts(std::move(ts)) {};
 
 	std::string apply(std::string &&text) const override {
 		for (auto &t : ts) {
@@ -126,5 +140,40 @@ class CompositeTransformation : public LabelTransformation {
 			return ts == t->ts;
 		}
 		return false;
+	}
+};
+
+class CensorTransformationFactory {
+	std::unordered_set<std::string> cache;
+
+	class ProxyTransformation : public CensorTransformationBase {
+		SmartRef<const std::string> word;
+
+	   public:
+		ProxyTransformation(const std::string &word) : word(word) {}
+		ProxyTransformation(const std::string *word) : word(std::move(word)) {}
+
+		using CensorTransformationBase::operator==;
+
+		std::string_view getWord() const noexcept override {
+			return *word;
+		}
+	};
+
+   public:
+	template <class stringType>
+	SmartRef<LabelTransformation> create(stringType &&word) {
+		std::string curr = std::forward<stringType>(word);
+		if (curr.size() <= 4) {
+			auto it = cache.find(curr);
+			if (it != cache.end()) {
+				return new ProxyTransformation(*it);
+			} else {
+				auto [i, b] = cache.insert(std::move(curr));
+				return new ProxyTransformation(*i);
+			}
+		} else {
+		  return new CensorTransformation(std::move(curr));
+		}
 	}
 };
