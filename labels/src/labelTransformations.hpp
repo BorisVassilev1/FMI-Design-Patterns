@@ -6,8 +6,6 @@
 #include <string>
 #include <unordered_set>
 #include "autoref.hpp"
-#include "label.hpp"
-#include "utils.hpp"
 
 class LabelTransformation {
    public:

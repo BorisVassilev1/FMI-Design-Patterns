@@ -1,10 +1,7 @@
 #pragma once
 
 #include <cstring>
-#include <iostream>
-#include <ostream>
 #include <type_traits>
-#include <typeinfo>
 #include <utility>
 
 namespace std {
