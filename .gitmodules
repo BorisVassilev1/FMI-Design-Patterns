@@ -1,0 +1,3 @@
+[submodule "hasher/lib/tclap"]
+	path = hasher/lib/tclap
+	url = https://github.com/DAarno/tclap.git
