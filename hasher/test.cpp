@@ -1,5 +1,6 @@
 #include <cassert>
 #include <sstream>
+#include "src/FSTree.hpp"
 #include "src/calculators.hpp"
 
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
@@ -49,4 +50,14 @@ TEST_CASE("Calculator Factory") {
 	CHECK_EQ(typeid(*factory.create("sha256").get()), typeid(SHA256ChecksumCalculator));
 	CHECK_EQ(factory.exists("md5"), true);
 	CHECK_EQ(factory.exists("sha256"), true);
+}
+
+
+TEST_CASE("fs") {
+	
+	FSTreeBuilderNoLinks builder;
+
+	auto res =builder.build("/home/cdnomlqko/.config/nvim");
+	res->print(std::cout);
+
 }
