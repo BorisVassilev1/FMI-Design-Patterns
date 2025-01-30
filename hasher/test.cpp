@@ -43,8 +43,7 @@ TEST_CASE("SHA256") {
 }
 
 TEST_CASE("Calculator Factory") {
-
-	std::istringstream ss("abc");
+	std::istringstream		   ss("abc");
 	ChecksumCalculatorFactory &factory = ChecksumCalculatorFactory::instance();
 	CHECK_EQ(typeid(*factory.create("md5").get()), typeid(MD5ChecksumCalculator));
 	CHECK_EQ(typeid(*factory.create("sha256").get()), typeid(SHA256ChecksumCalculator));
@@ -52,12 +51,13 @@ TEST_CASE("Calculator Factory") {
 	CHECK_EQ(factory.exists("sha256"), true);
 }
 
-
 TEST_CASE("fs") {
-	
 	FSTreeBuilderNoLinks builder;
+	FSTreePrinter		 printer(std::cout);
 
-	auto res =builder.build("/home/cdnomlqko/.config/nvim");
-	res->print(std::cout);
+	auto res = builder.build(PROJECT_SOURCE_DIR "/test");
+	if (res) res->accept(printer);
 
+	res = FSTreeBuilderWithLinks().build(PROJECT_SOURCE_DIR "/test");
+	if (res) res->accept(printer);
 }
