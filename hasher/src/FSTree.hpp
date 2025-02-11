@@ -26,9 +26,6 @@ class FSNode : public FSAcceptor {
 
 	FSNode(const std::filesystem::path &path) : path(path) {}
 	virtual ~FSNode() = default;
-	void print(std::ostream &os) const { print(os, {}); }
-
-	virtual void print(std::ostream &os, std::vector<bool> b) const = 0;
 };
 
 class File : public FSNode {
@@ -36,10 +33,6 @@ class File : public FSNode {
 	File(const std::filesystem::path &path) : FSNode(path) {}
 
    protected:
-	virtual void print(std::ostream &os, std::vector<bool> b) const override {
-		os << "\u2500\u2500 " << path.filename().string() << std::endl;
-	}
-
 	void accept(const FSVisitor &v) override { v.visit(*this); }
 	void accept(const FSVisitor &v) const override { v.visit(*this); }
 };
@@ -50,25 +43,6 @@ class Directory : public FSNode {
 	std::vector<std::unique_ptr<FSNode>> children;
 
    protected:
-	virtual void print(std::ostream &os, std::vector<bool> b) const override {
-		os << "\u2500\u2500<" << path.filename().string() << std::endl;
-		if (children.empty()) return;
-		for (int i = 0; i + 1 < children.size(); i++) {
-			for (auto x : b)
-				os << (x ? "   \u2502" : "    ");
-			b.push_back(true);
-			os << "   \u251c";
-			children[i]->print(os, b);
-			b.pop_back();
-		}
-		for (auto x : b)
-			os << (x ? "   \u2502" : "    ");
-		b.push_back(false);
-		os << "   \u2514";
-		children.back()->print(os, b);
-		b.pop_back();
-	}
-
 	void accept(const FSVisitor &v) override { v.visit(*this); }
 	void accept(const FSVisitor &v) const override { v.visit(*this); }
 };
@@ -110,8 +84,11 @@ class FSTreeBuilderWithLinks : public FSTreeBuilder {
 			}
 			return dir;
 		} else {
-			if (exists(path)) return std::make_unique<File>(path);
-			else return nullptr;
+			if (exists(path)) {
+				if (is_symlink(path)) {
+					return std::make_unique<File>(read_symlink(path));
+				} else return std::make_unique<File>(path);
+			} else return nullptr;
 		}
 	}
 };
@@ -132,14 +109,14 @@ class FSTreePrinter : public FSVisitor {
 				os << (x ? "   \u2502" : "    ");
 			b.push_back(true);
 			os << "   \u251c";
-			node.children[i]->print(os, b);
+			node.children[i]->accept(*this);
 			b.pop_back();
 		}
 		for (auto x : b)
 			os << (x ? "   \u2502" : "    ");
 		b.push_back(false);
 		os << "   \u2514";
-		node.children.back()->print(os, b);
+		node.children.back()->accept(*this);
 		b.pop_back();
 	}
 };
