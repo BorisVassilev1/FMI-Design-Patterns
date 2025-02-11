@@ -55,7 +55,7 @@ TEST_CASE("fs") {
 	FSTreeBuilderNoLinks builder;
 	FSTreePrinter		 printer(std::cout);
 
-	auto res = builder.build(PROJECT_SOURCE_DIR "/test");
+	auto res = FSTreeBuilderNoLinks().build(PROJECT_SOURCE_DIR "/test");
 	if (res) res->accept(printer);
 
 	res = FSTreeBuilderWithLinks().build(PROJECT_SOURCE_DIR "/test");
