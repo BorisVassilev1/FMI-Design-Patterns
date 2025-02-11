@@ -1,7 +1,8 @@
 #include <cassert>
 #include <sstream>
-#include "src/FSTree.hpp"
-#include "src/calculators.hpp"
+#include <FSTree.hpp>
+#include <calculators.hpp>
+#include <visitors.hpp>
 
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest.h>
@@ -61,3 +62,16 @@ TEST_CASE("fs") {
 	res = FSTreeBuilderWithLinks().build(PROJECT_SOURCE_DIR "/test");
 	if (res) res->accept(printer);
 }
+
+TEST_CASE("md5 checksum directory") {
+
+	FSTreeBuilderNoLinks builder;
+	MD5ChecksumCalculator calc;
+	HashStreamWriter	 printer(calc);
+	ReportWriter		 report(std::cout);
+
+	auto res = FSTreeBuilderNoLinks().build(PROJECT_SOURCE_DIR "/test");
+	if (res) res->accept(printer);
+	if(res) res->accept(report);
+
+};

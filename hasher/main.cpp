@@ -1,11 +1,14 @@
 #include <cassert>
 #include <iostream>
-#include "src/FSTree.hpp"
-#include "src/utils.hpp"
-#include "tclap/SwitchArg.h"
-#include "tclap/ValueArg.h"
-#include "tclap/ValuesConstraint.h"
+
+#include <tclap/SwitchArg.h>
+#include <tclap/ValueArg.h>
+#include <tclap/ValuesConstraint.h>
 #include <tclap/CmdLine.h>
+
+#include <FSTree.hpp>
+#include <utils.hpp>
+#include <visitors.hpp>
 
 int main(int argc, char **argv) {
 	try {

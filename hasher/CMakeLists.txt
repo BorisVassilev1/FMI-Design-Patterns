@@ -24,6 +24,7 @@ target_compile_options(main PRIVATE -fsanitize=address -g)
 target_link_options(main PRIVATE -fsanitize=address -g -lssl -lcrypto)
 target_include_directories(main PUBLIC ../lib/)
 target_include_directories(main PUBLIC ./lib/tclap/include)
+target_include_directories(main PUBLIC ./src/)
 
 
 SET(COVERAGE_FLAGS 
@@ -40,6 +41,7 @@ target_compile_options(tests PRIVATE ${COVERAGE_FLAGS} -g -std=c++23 -fsanitize=
 target_link_options(tests PRIVATE ${COVERAGE_FLAGS} -fsanitize=address -g -lssl -lcrypto)
 target_include_directories(tests PUBLIC ../lib/)
 target_include_directories(tests PUBLIC ./lib/tclap/include)
+target_include_directories(tests PUBLIC ./src/)
 
 set(CMAKE_BUILD_TYPE Debug)
 

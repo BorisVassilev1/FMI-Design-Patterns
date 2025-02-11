@@ -2,9 +2,11 @@
 #include <iostream>
 #include <string>
 #include <istream>
+
 #include <openssl/evp.h>
-#include "factory.hpp"
-#include "utils.hpp"
+
+#include <factory.hpp>
+#include <utils.hpp>
 
 class ChecksumCalculator {
    public:

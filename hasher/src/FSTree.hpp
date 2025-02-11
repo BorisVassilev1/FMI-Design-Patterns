@@ -1,10 +1,9 @@
 #pragma once
 
 #include <filesystem>
-#include <iostream>
 #include <memory>
-#include <numeric>
 #include <vector>
+#include <fstream>
 
 class File;
 class Directory;
@@ -35,11 +34,16 @@ class FSNode : public FSAcceptor {
 class File : public FSNode {
    public:
 	File(const std::filesystem::path &path, std::uintmax_t size) : FSNode(path, size) {}
+	virtual std::unique_ptr<std::istream> getStream() const = 0;
 };
 
 class RegularFile : public File {
    public:
 	RegularFile(const std::filesystem::path &path) : File(path, std::filesystem::file_size(path)) {}
+
+	std::unique_ptr<std::istream> getStream() const override {
+		return std::unique_ptr<std::istream>(new std::ifstream(path, std::ios::binary));
+	}
 
 	void accept(const FSVisitor &v) override { v.visit(*this); }
 	void accept(const FSVisitor &v) const override { v.visit(*this); }
@@ -50,6 +54,10 @@ class SymLink : public File {
 	std::filesystem::path target;
 	SymLink(const std::filesystem::path &path) : File(path, 0), target(std::filesystem::read_symlink(path)) {
 		size = target.native().size();
+	}
+
+	std::unique_ptr<std::istream> getStream() const override {
+		return std::unique_ptr<std::istream>(new std::istringstream(target.native()));
 	}
 
 	void accept(const FSVisitor &v) override { v.visit(*this); }
@@ -98,8 +106,13 @@ class FSTreeBuilderNoLinks : public FSTreeBuilder {
 };
 
 class FSTreeBuilderWithLinks : public FSTreeBuilder {
+	static const std::size_t max_path_size = 4096;
+
    public:
 	std::unique_ptr<FSNode> build(const std::filesystem::path &path) override {
+		if(path.native().size() > max_path_size)
+			throw std::runtime_error("reached a path that is too long");
+
 		using namespace std::filesystem;
 		if (path.filename().string()[0] == '.') { return nullptr; }
 		if (is_directory(path)) {
@@ -117,32 +130,4 @@ class FSTreeBuilderWithLinks : public FSTreeBuilder {
 	}
 };
 
-class FSTreePrinter : public FSVisitor {
-	std::ostream			 &os;
-	mutable std::vector<bool> b;
 
-   public:
-	FSTreePrinter(std::ostream &os) : os(os) {}
-
-	void visit(const File &node) const override {
-		os << "\u2500 " << node.path.filename().string() << " : " << node.size << std::endl;
-	}
-	void visit(const Directory &node) const override {
-		os << "\u2500<" << node.path.filename().string() << " : " << node.size << std::endl;
-		if (node.children.empty()) return;
-		for (int i = 0; i + 1 < node.children.size(); i++) {
-			for (auto x : b)
-				os << (x ? "  \u2502" : "   ");
-			b.push_back(true);
-			os << "  \u251c";
-			node.children[i]->accept(*this);
-			b.pop_back();
-		}
-		for (auto x : b)
-			os << (x ? "  \u2502" : "   ");
-		b.push_back(false);
-		os << "  \u2514";
-		node.children.back()->accept(*this);
-		b.pop_back();
-	}
-};
