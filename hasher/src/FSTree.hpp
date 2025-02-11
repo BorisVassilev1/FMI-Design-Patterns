@@ -47,7 +47,10 @@ class RegularFile : public File {
 
 class SymLink : public File {
    public:
-	SymLink(const std::filesystem::path &path) : File(path, path.native().length()) {}
+	std::filesystem::path target;
+	SymLink(const std::filesystem::path &path) : File(path, 0), target(std::filesystem::read_symlink(path)) {
+		size = target.native().size();
+	}
 
 	void accept(const FSVisitor &v) override { v.visit(*this); }
 	void accept(const FSVisitor &v) const override { v.visit(*this); }
