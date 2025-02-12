@@ -7,7 +7,7 @@ project(
 
 # Prepare doctest for other targets to use
 
-SET(CMAKE_CXX_COMPILER g++)
+SET(CMAKE_CXX_COMPILER clang++)
 
 file(GLOB_RECURSE FIGURES_SOURCES
 	./src/*.cpp
