@@ -64,48 +64,6 @@ TEST_CASE("Calculator Factory") {
 	}
 }
 
-TEST_CASE("fs tree print") {
-	std::ostringstream oss;
-
-	SUBCASE("No links") {
-		auto res = FSTreeBuilderNoLinks().build(PROJECT_SOURCE_DIR "/test");
-		CHECK(res);
-		res->accept(FSTreePrinter(oss));
-
-		CHECK_EQ(oss.str(),
-				 "─<test : 74\n"
-				 "  ├─<asd : 62\n"
-				 "  │  ├─ 1 : 40\n"
-				 "  │  ├─ 2 : 9\n"
-				 "  │  └─ 3 : 13\n"
-				 "  ├─<bbb : 0\n"
-				 "  │  └─ bb : 0\n"
-				 "  ├─ b : 0\n"
-				 "  ├─ a : 7\n"
-				 "  └─ c : 5\n");
-	}
-
-	SUBCASE("with links") {
-		auto res = FSTreeBuilderWithLinks().build(PROJECT_SOURCE_DIR "/test");
-		CHECK(res);
-		res->accept(FSTreePrinter(oss));
-		CHECK_EQ(oss.str(),
-				 "─<test : 137\n"
-				 "  ├─<asd : 62\n"
-				 "  │  ├─ 1 : 40\n"
-				 "  │  ├─ 2 : 9\n"
-				 "  │  └─ 3 : 13\n"
-				 "  ├─<bbb : 0\n"
-				 "  │  └─ bb : 0\n"
-				 "  ├─ b : 0\n"
-				 "  ├─ a : 13\n"
-				 "  └─<c : 62\n"
-				 "     ├─ 1 : 40\n"
-				 "     ├─ 2 : 9\n"
-				 "     └─ 3 : 13\n");
-	}
-}
-
 TEST_CASE("recursive iteration ls check") {
 	std::ostringstream oss;
 

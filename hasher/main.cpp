@@ -32,6 +32,7 @@ int main(int argc, char **argv) {
 		bool		followLinks = linksArg.getValue();
 		std::string path		= pathArg.getValue();
 		std::string algorithm	= algorithmArg.getValue();
+		std::string format		= formatArg.getValue();
 
 		std::cout << "Calculating checksums for " << path << " using " << algorithm << " algorithm" << std::endl;
 		std::cout << "Following symbolic links: " << (followLinks ? "yes" : "no") << std::endl;
@@ -40,9 +41,22 @@ int main(int argc, char **argv) {
 		if (followLinks) builder = std::make_unique<FSTreeBuilderWithLinks>();
 		else builder = std::make_unique<FSTreeBuilderNoLinks>();
 
-		FSTreePrinter printer(std::cout);
-		auto		  res = builder->build(path);
-		if (res) res->accept(printer);
+		// scan directory
+		auto tree = builder->build(path);
+
+		// generate report with file sizes
+		auto reportWriter = Factory<ReportWriter>::instance().create(format);
+		tree->accept(*reportWriter);
+
+		// progress bar
+		// write to file
+		auto calculator = ChecksumCalculatorFactory::instance().create(algorithm);
+
+		{
+			tree->accept(HashStreamWriter(*calculator));
+		}
+	
+
 
 	} catch (TCLAP::ArgException &e)	 // catch exceptions
 	{
