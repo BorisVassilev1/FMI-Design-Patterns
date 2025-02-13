@@ -9,11 +9,15 @@
 #include <FSTree.hpp>
 #include <utils.hpp>
 #include <visitors.hpp>
+#include "calculators.hpp"
+#include "factory.hpp"
 
 int main(int argc, char **argv) {
 	try {
-		std::vector<std::string>			 algorithms = {"md5", "sha256"};
+		std::vector<std::string>			 algorithms = ChecksumCalculatorFactory::instance().getKeys();
+		std::vector<std::string>			 formats	= Factory<ReportWriter>::instance().getKeys();
 		TCLAP::ValuesConstraint<std::string> allowedAlgs(algorithms);
+		TCLAP::ValuesConstraint<std::string> allowedFormats(formats);
 
 		TCLAP::CmdLine cmd("Checksum Calculator", ' ', "0.0.1");
 
@@ -21,6 +25,8 @@ int main(int argc, char **argv) {
 		TCLAP::ValueArg<std::string> algorithmArg("a", "algorithm", "which hashing algorithm to use", false, "md5",
 												  &allowedAlgs, cmd);
 		TCLAP::SwitchArg			 linksArg("l", "link", "if specified, follow symbolic links", cmd);
+		TCLAP::ValueArg<std::string> formatArg("f", "format", "output format", false, "gnu", &allowedFormats);
+
 		cmd.parse(argc, argv);
 
 		bool		followLinks = linksArg.getValue();

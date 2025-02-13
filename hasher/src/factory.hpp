@@ -23,4 +23,12 @@ class Factory {
 		static Factory instance;
 		return instance;
 	}
+
+	std::vector<std::string> getKeys() {
+		std::vector<std::string> keys;
+		for (const auto &pair : m_factories) {
+			keys.push_back(pair.first);
+		}
+		return keys;
+	}
 };

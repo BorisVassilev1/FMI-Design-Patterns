@@ -64,7 +64,7 @@ TEST_CASE("Calculator Factory") {
 	}
 }
 
-TEST_CASE("fs") {
+TEST_CASE("fs tree print") {
 	std::ostringstream oss;
 
 	SUBCASE("No links") {
@@ -106,15 +106,15 @@ TEST_CASE("fs") {
 	}
 }
 
-TEST_CASE("recursive iteration") {
+TEST_CASE("recursive iteration ls check") {
 	std::ostringstream oss;
 
 	SUBCASE("ls no links") {
-		auto res = FSTreeBuilderNoLinks().build(PROJECT_SOURCE_DIR "/test");
+		auto res = FSTreeBuilderNoLinks().build(PROJECT_SOURCE_DIR);
 		CHECK(res);
 		res->accept(LsWriter(oss));
 
-		std::string	 cmd = "ls -RU " + std::filesystem::relative(PROJECT_SOURCE_DIR "/test/").string();
+		std::string	 cmd = "ls -RU " + std::filesystem::relative(PROJECT_SOURCE_DIR).string();
 		ShellProcess p(cmd.c_str());
 		CHECK_EQ(p.wait(), 0);
 
@@ -123,11 +123,11 @@ TEST_CASE("recursive iteration") {
 	}
 
 	SUBCASE("ls no links") {
-		auto res = FSTreeBuilderWithLinks().build(PROJECT_SOURCE_DIR "/test");
+		auto res = FSTreeBuilderWithLinks().build(PROJECT_SOURCE_DIR);
 		CHECK(res);
 		res->accept(LsWriter(oss));
 
-		std::string	 cmd = "ls -RUL " + std::filesystem::relative(PROJECT_SOURCE_DIR "/test/").string();
+		std::string	 cmd = "ls -RUL " + std::filesystem::relative(PROJECT_SOURCE_DIR).string();
 		ShellProcess p(cmd.c_str());
 		CHECK_EQ(p.wait(), 0);
 
@@ -147,8 +147,7 @@ TEST_CASE("md5 checksum directory") {
 	CHECK(res);
 	res->accept(printer);
 
-	std::string	 path = std::filesystem::relative(PROJECT_SOURCE_DIR "/test/asd/");
-	std::string	 cmd  = "md5sum " + path + "/* -b";
+	std::string	 cmd  = "md5sum " + std::filesystem::relative(PROJECT_SOURCE_DIR "/test/asd/").string() + "/* -b";
 	ShellProcess p(cmd.c_str());
 	CHECK_EQ(p.wait(), 0);
 	CHECK_EQ(getString(p.err()), "");
