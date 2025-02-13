@@ -10,10 +10,10 @@
 #include <thread>
 #include <utils.hpp>
 #include <visitors.hpp>
-#include "calculators.hpp"
-#include "factory.hpp"
+#include <reportData.hpp>
 
 int main(int argc, char **argv) {
+	using namespace std::literals;
 	try {
 		std::vector<std::string>			 algorithms = ChecksumCalculatorFactory::instance().getKeys();
 		std::vector<std::string>			 formats	= HashStreamWriterFactory::instance().getKeys();
@@ -27,36 +27,57 @@ int main(int argc, char **argv) {
 												  &allowedAlgs, cmd);
 		TCLAP::SwitchArg			 linksArg("l", "link", "if specified, follow symbolic links", cmd);
 		TCLAP::ValueArg<std::string> formatArg("f", "format", "output format", false, "gnu", &allowedFormats, cmd);
-		TCLAP::SwitchArg			 checksums("c", "checksums", "verify checksums in directory", cmd, false);
+		TCLAP::ValueArg<std::string> checksums("c", "checksums", "verify checksums in directory", false, "", "string",
+											   cmd);
 
 		cmd.parse(argc, argv);
 
-		bool		mode		= checksums.getValue();
-		bool		followLinks = linksArg.getValue();
-		std::string path		= pathArg.getValue();
-		std::string algorithm	= algorithmArg.getValue();
-		std::string format		= formatArg.getValue();
+		std::string checksumsPath = checksums.getValue();
+		bool		mode		  = !checksumsPath.empty();
+		bool		followLinks	  = linksArg.getValue();
+		std::string path		  = pathArg.getValue();
+		std::string algorithm	  = algorithmArg.getValue();
+		std::string format		  = formatArg.getValue();
 
-		std::cout << "Calculating checksums for " << path << " using " << algorithm << " algorithm" << std::endl;
-		std::cout << "Following symbolic links: " << (followLinks ? "yes" : "no") << std::endl;
+		//std::cout << "Calculating checksums for " << path << " using " << algorithm << " algorithm" << std::endl;
+		//std::cout << "Following symbolic links: " << (followLinks ? "yes" : "no") << std::endl;
+
+		// create scanner
+		std::unique_ptr<FSTreeBuilder> builder = nullptr;
+		if (followLinks) builder = std::make_unique<FSTreeBuilderWithLinks>();
+		else builder = std::make_unique<FSTreeBuilderNoLinks>();
+
+		// scan directory
+		auto tree = builder->build(path);
+		if (!tree) throw std::runtime_error("failed to build tree");
+
+		auto calculator = ChecksumCalculatorFactory::instance().create(algorithm);
 
 		if (!mode) {
-			// create scanner
-			std::unique_ptr<FSTreeBuilder> builder = nullptr;
-			if (followLinks) builder = std::make_unique<FSTreeBuilderWithLinks>();
-			else builder = std::make_unique<FSTreeBuilderNoLinks>();
-
-			// scan directory
-			auto tree = builder->build(path);
-			if(!tree) throw std::runtime_error("failed to build tree");
-
 			// calculate checksums
-			auto calculator = ChecksumCalculatorFactory::instance().create(algorithm);
-			auto writer		= HashStreamWriterFactory::instance().create(format, *calculator, std::cout);
+			auto writer = HashStreamWriterFactory::instance().create(format, *calculator, std::cout);
 
 			auto thread = std::thread([&] { tree->accept(*writer); });
 			//... can cancel
 			thread.join();
+		} else {
+			// verify checksums
+
+			// read old checksums
+			std::ifstream is(checksumsPath);
+			if (!is) throw std::runtime_error("failed to open file: "s + strerror(errno));
+			auto	   reportBuilder = ReportDataBuilderFactory::instance().create(format);
+			ReportData oldTreeData	 = reportBuilder->build(is);
+
+			// calculate new checksums
+			ReportData newTreeData;
+			auto	   treeWriter = ReportDataHashStreamWriter(*calculator, std::cerr, newTreeData);
+			auto	   thread	  = std::thread([&] { tree->accept(treeWriter); });
+			// ... can cancel
+			thread.join();
+
+			// compare
+			compare(oldTreeData, newTreeData, std::cout);
 		}
 
 	} catch (TCLAP::ArgException &e)	 // catch exceptions

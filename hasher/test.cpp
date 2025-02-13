@@ -3,7 +3,7 @@
 #include <FSTree.hpp>
 #include <calculators.hpp>
 #include <visitors.hpp>
-#include "pipes.hpp"
+#include <pipes.hpp>
 
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest.h>
