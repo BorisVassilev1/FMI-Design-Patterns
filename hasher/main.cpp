@@ -31,15 +31,15 @@ int main(int argc, char **argv) {
 		std::cout << "Following symbolic links: " << (followLinks ? "yes" : "no") << std::endl;
 
 		std::unique_ptr<FSTreeBuilder> builder = nullptr;
-		if(followLinks) builder = std::make_unique<FSTreeBuilderWithLinks>();
+		if (followLinks) builder = std::make_unique<FSTreeBuilderWithLinks>();
 		else builder = std::make_unique<FSTreeBuilderNoLinks>();
 
-		FSTreePrinter		   printer(std::cout);
-		auto				   res = builder->build(path);
+		FSTreePrinter printer(std::cout);
+		auto		  res = builder->build(path);
 		if (res) res->accept(printer);
 
 	} catch (TCLAP::ArgException &e)	 // catch exceptions
 	{
 		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
-	}
+	} catch (std::exception &e) { std::cerr << "error: " << e.what() << std::endl; }
 }
