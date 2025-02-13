@@ -1,7 +1,6 @@
 #pragma once
 #include <FSTree.hpp>
-#include <algorithm>
-#include "calculators.hpp"
+#include <calculators.hpp>
 
 class FSTreePrinter : public FSVisitor {
 	std::ostream			 &os;
@@ -45,15 +44,20 @@ class FileVisitor : public FSVisitor {
 	}
 };
 
-class HashStreamWriter : public FileVisitor {
-	ChecksumCalculator &calc;
-
+class ReportWriter : public FileVisitor {
    protected:
 	std::ostream &os;
 
    public:
+	ReportWriter(std::ostream &os) : os(os) {}
+};
+
+class HashStreamWriter : public ReportWriter {
+	ChecksumCalculator &calc;
+
+   public:
 	std::string calculateHash(const File &node) const { return calc.calculate(*node.getStream()); }
-	HashStreamWriter(ChecksumCalculator &calc, std::ostream &os) : calc(calc), os(os) {}
+	HashStreamWriter(ChecksumCalculator &calc, std::ostream &os) : ReportWriter(os), calc(calc){}
 };
 
 class GNUHashStreamWriter : public HashStreamWriter {
@@ -101,15 +105,13 @@ class JSONHashStreamWriter : public HashStreamWriter {
 	}
 };
 
-class ReportWriter : public FileVisitor {
-   protected:
-	std::ostream &os;
+using HashStreamWriterFactory = Factory<HashStreamWriter, ChecksumCalculator&, std::ostream &>;
 
-   public:
-	ReportWriter(std::ostream &os) : os(os) {}
-
-	void visit(const File &node) const override { os << node.path << " : " << node.size << std::endl; }
-};
+JOB(hash_stream_writer_factory_register, {
+	HashStreamWriterFactory::instance().registerType<GNUHashStreamWriter>("gnu");
+	HashStreamWriterFactory::instance().registerType<XMLHashStreamWriter>("xml");
+	HashStreamWriterFactory::instance().registerType<JSONHashStreamWriter>("json");
+});
 
 class LsWriter : public ReportWriter {
 	mutable std::filesystem::path path;

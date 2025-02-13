@@ -98,12 +98,11 @@ TEST_CASE("md5 checksum directory") {
 	FSTreeBuilderNoLinks  builder;
 	MD5ChecksumCalculator calc;
 	std::ostringstream	  oss;
-	GNUHashStreamWriter	  printer(calc, oss);
-	ReportWriter		  report(std::cout);
+	GNUHashStreamWriter	  writer(calc, oss);
 
 	auto res = FSTreeBuilderNoLinks().build(PROJECT_SOURCE_DIR "/test/asd");
 	CHECK(res);
-	res->accept(printer);
+	res->accept(writer);
 
 	std::string	 cmd  = "md5sum " + std::filesystem::relative(PROJECT_SOURCE_DIR "/test/asd/").string() + "/* -b";
 	ShellProcess p(cmd.c_str());

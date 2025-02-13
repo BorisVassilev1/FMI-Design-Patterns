@@ -5,17 +5,17 @@
 #include <string>
 #include <unordered_map>
 
-template <class T>
+template <class T, class ...Args>
 class Factory {
-	std::unordered_map<std::string, std::function<std::unique_ptr<T>()>> m_factories;
+	std::unordered_map<std::string, std::function<std::unique_ptr<T>(Args&&...)>> m_factories;
 
    public:
-	template <class U, class... Args>
-	void registerType(const std::string &name, Args &&...args) {
-		m_factories[name] = [&args...]() -> std::unique_ptr<T> { return std::make_unique<U>(std::forward(args)...); };
+	template <class U>
+	void registerType(const std::string &name) {
+		m_factories[name] = [](Args&&... args) -> std::unique_ptr<T> { return std::make_unique<U>(std::forward<Args>(args)...); };
 	}
 
-	std::unique_ptr<T> create(const std::string &name) { return m_factories[name](); }
+	std::unique_ptr<T> create(const std::string &name, Args &&...args) { return m_factories[name](std::forward<Args>(args)...); }
 
 	bool exists(const std::string &name) { return m_factories.find(name) != m_factories.end(); }
 
