@@ -6,9 +6,11 @@
 #include <openssl/evp.h>
 
 #include <factory.hpp>
+#include <thread>
 #include <utils.hpp>
+#include "observe.hpp"
 
-class ChecksumCalculator {
+class ChecksumCalculator : public BasicObservable<uintmax_t> {
    public:
 	virtual std::string calculate(std::istream &) = 0;
 	virtual ~ChecksumCalculator()				  = default;
@@ -26,10 +28,21 @@ class OpenSSLChecksumCalculator : public ChecksumCalculator {
 
 		EVP_DigestInit(context, md);
 		char buffer[1024];
+		int	 byte_counter = 0;
+		int	 read_bytes	  = 0;
 		while (input.read(buffer, sizeof(buffer))) {
 			EVP_DigestUpdate(context, buffer, input.gcount());
+			byte_counter += input.gcount();
+			read_bytes += input.gcount();
+			if (byte_counter > (1 << 20)) {
+				byte_counter = 0;
+				notifyObservers(read_bytes);
+			}
 		}
+		using namespace std::literals;
+		//std::this_thread::sleep_for(300ms);
 		EVP_DigestUpdate(context, buffer, input.gcount());
+		read_bytes += input.gcount();
 		EVP_DigestFinal(context, md_value, &md_len);
 		EVP_MD_CTX_free(context);
 		std::string result;
@@ -37,6 +50,7 @@ class OpenSSLChecksumCalculator : public ChecksumCalculator {
 		for (unsigned int i = 0; i < md_len; i++) {
 			sprintf(result.data() + 2 * i, "%02x", md_value[i]);
 		}
+		if (input.gcount()) notifyObservers(read_bytes);
 		return result;
 	}
 };

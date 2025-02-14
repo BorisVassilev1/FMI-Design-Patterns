@@ -11,6 +11,7 @@
 #include <utils.hpp>
 #include <visitors.hpp>
 #include <reportData.hpp>
+#include "progress.hpp"
 
 int main(int argc, char **argv) {
 	using namespace std::literals;
@@ -29,9 +30,11 @@ int main(int argc, char **argv) {
 		TCLAP::ValueArg<std::string> formatArg("f", "format", "output format", false, "gnu", &allowedFormats, cmd);
 		TCLAP::ValueArg<std::string> checksums("c", "checksums", "verify checksums in directory", false, "", "string",
 											   cmd);
+		TCLAP::ValueArg<std::string> output("o", "output", "output file", false, "", "string", cmd);
 
 		cmd.parse(argc, argv);
 
+		std::string outputPath	  = output.getValue();
 		std::string checksumsPath = checksums.getValue();
 		bool		mode		  = !checksumsPath.empty();
 		bool		followLinks	  = linksArg.getValue();
@@ -39,8 +42,8 @@ int main(int argc, char **argv) {
 		std::string algorithm	  = algorithmArg.getValue();
 		std::string format		  = formatArg.getValue();
 
-		//std::cout << "Calculating checksums for " << path << " using " << algorithm << " algorithm" << std::endl;
-		//std::cout << "Following symbolic links: " << (followLinks ? "yes" : "no") << std::endl;
+		// std::cout << "Calculating checksums for " << path << " using " << algorithm << " algorithm" << std::endl;
+		// std::cout << "Following symbolic links: " << (followLinks ? "yes" : "no") << std::endl;
 
 		// create scanner
 		std::unique_ptr<FSTreeBuilder> builder = nullptr;
@@ -55,7 +58,17 @@ int main(int argc, char **argv) {
 
 		if (!mode) {
 			// calculate checksums
-			auto writer = HashStreamWriterFactory::instance().create(format, *calculator, std::cout);
+			std::unique_ptr<ProgressViewer> progress = nullptr;
+			std::ostream				   *os		 = &std::cout;
+			std::ofstream					ofs;
+			if (!outputPath.empty()) {
+				ofs.open(outputPath);
+				if (!ofs) throw std::runtime_error("failed to open file: "s + strerror(errno));
+				os = &ofs;
+			}
+			auto writer = HashStreamWriterFactory::instance().create(format, *calculator, *os);
+
+			if (outputPath != "") { progress = std::make_unique<ProgressViewer>(tree.get(), writer.get(), std::cout); }
 
 			auto thread = std::thread([&] { tree->accept(*writer); });
 			//... can cancel
@@ -72,6 +85,7 @@ int main(int argc, char **argv) {
 			// calculate new checksums
 			ReportData newTreeData;
 			auto	   treeWriter = ReportDataHashStreamWriter(*calculator, std::cerr, newTreeData);
+			auto progress = ProgressViewer(tree.get(), &treeWriter, std::cout);
 			auto	   thread	  = std::thread([&] { tree->accept(treeWriter); });
 			// ... can cancel
 			thread.join();
@@ -83,5 +97,6 @@ int main(int argc, char **argv) {
 	} catch (TCLAP::ArgException &e)	 // catch exceptions
 	{
 		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
-	} catch (std::exception &e) { std::cerr << "error: " << e.what() << std::endl; }
+		exit(1);
+	} catch (std::exception &e) { std::cerr << "error: " << e.what() << std::endl; exit(1); }
 }

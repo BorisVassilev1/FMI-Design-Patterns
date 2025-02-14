@@ -88,6 +88,7 @@ class FSTreeBuilderNoLinks : public FSTreeBuilder {
    public:
 	std::unique_ptr<FSNode> build(const std::filesystem::path &path) override {
 		using namespace std::filesystem;
+		if(!exists(path) && !is_symlink(path)) throw std::runtime_error("path does not exist: " + path.string());
 		if (path.filename().string()[0] == '.') { return nullptr; }
 		if (is_directory(path) && !is_symlink(path)) {
 			std::vector<std::unique_ptr<FSNode>> children;
@@ -97,10 +98,8 @@ class FSTreeBuilderNoLinks : public FSTreeBuilder {
 			}
 			return std::make_unique<Directory>(path, std::move(children));
 		} else {
-			if (exists(path))
-				if (is_symlink(path)) return std::make_unique<SymLink>(path);
-				else return std::make_unique<RegularFile>(path);
-			else return nullptr;
+			if (is_symlink(path)) return std::make_unique<SymLink>(path);
+			else return std::make_unique<RegularFile>(path);
 		}
 	}
 };
@@ -114,6 +113,7 @@ class FSTreeBuilderWithLinks : public FSTreeBuilder {
 			throw std::runtime_error("reached a path that is too long");
 
 		using namespace std::filesystem;
+		if(!exists(path) && !is_symlink(path)) throw std::runtime_error("path does not exist: " + path.string());
 		if (path.filename().string()[0] == '.') { return nullptr; }
 		if (is_directory(path)) {
 			std::vector<std::unique_ptr<FSNode>> children;

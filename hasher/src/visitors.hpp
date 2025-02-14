@@ -1,7 +1,9 @@
 #pragma once
 #include <FSTree.hpp>
 #include <calculators.hpp>
-#include "reportData.hpp"
+#include <observe.hpp>
+#include <reportData.hpp>
+#include "nlohmann/json.hpp"
 
 class FileVisitor : public FSVisitor {
    public:
@@ -87,12 +89,19 @@ class TreeWriter : public ReportWriter {
 	}
 };
 
-class HashStreamWriter : public ReportWriter {
+class HashStreamWriter : public ReportWriter,
+						 public ForwardObservable<std::uintmax_t>,
+						 public BasicObservable<std::filesystem::path> {
+   protected:
 	ChecksumCalculator &calc;
 
    public:
-	std::string calculateHash(const File &node) const { return calc.calculate(*node.getStream()); }
-	HashStreamWriter(ChecksumCalculator &calc, std::ostream &os) : ReportWriter(os), calc(calc) {}
+	std::string calculateHash(const File &node) const {
+		BasicObservable<std::filesystem::path>::notifyObservers(node.path);
+		return calc.calculate(*node.getStream());
+	}
+	HashStreamWriter(ChecksumCalculator &calc, std::ostream &os)
+		: ReportWriter(os), ForwardObservable<std::uintmax_t>(&calc), calc(calc) {}
 };
 
 class GNUHashStreamWriter : public HashStreamWriter {
@@ -105,20 +114,19 @@ class GNUHashStreamWriter : public HashStreamWriter {
 };
 
 class JSONHashStreamWriter : public HashStreamWriter {
-   public:
-	JSONHashStreamWriter(ChecksumCalculator &calc, std::ostream &os) : HashStreamWriter(calc, os) {
-		os << "[" << std::endl;
-	}
+	mutable nlohmann::json j;
 
-	~JSONHashStreamWriter() { os << "]" << std::endl; }
+   public:
+	JSONHashStreamWriter(ChecksumCalculator &calc, std::ostream &os)
+		: HashStreamWriter(calc, os), j(nlohmann::json::array()) {}
+
+	~JSONHashStreamWriter() { os << j; }
 
 	void visit(const File &node) const override {
-		os << "\t{" << std::endl;
-		os << "\t\t\"mode\": \"binary\"," << std::endl;
-		os << "\t\t\"checksum\": \"" << calculateHash(node) << "\"," << std::endl;
-		os << "\t\t\"path\": \"" << getRelativePath(node).string() << "\"," << std::endl;
-		os << "\t\t\"size\": " << node.size << std::endl;
-		os << "\t}," << std::endl;
+		j.emplace_back(nlohmann::json{{"mode", "binary"},
+									  {"checksum", calculateHash(node)},
+									  {"path", getRelativePath(node).string()},
+									  {"size", node.size}});
 	}
 };
 
